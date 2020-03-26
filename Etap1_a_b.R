@@ -14,5 +14,7 @@ str(dane)
 #ID <- unite(dane[,3:4], col="id_client", sep="-")
 #dane <- cbind(ID, dane)
 
+paste("Liczba wierszy:", as.character(nrow(dane)))
+paste("Liczba kolumn:", as.character(ncol(dane)))
 
 
