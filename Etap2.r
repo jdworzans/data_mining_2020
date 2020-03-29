@@ -29,9 +29,11 @@ table(Area.Code)
 
 #  Plan międzynarodowy
 table(Int.l.Plan)
+ggplot(dane, aes(Int.l.Plan)) + geom_bar()
 
 #  Plan poczty głosowej
 table(VMail.Plan)
+ggplot(dane, aes(VMail.Plan)) + geom_bar()
 
 #  Liczba wiadomości w poczcie głosowej
 table(VMail.Message)
