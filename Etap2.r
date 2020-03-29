@@ -104,3 +104,33 @@ ggplot(dane, aes(Intl.Charge)) + geom_histogram(binwidth=1)
 table(CustServ.Calls)
 ggplot(dane, aes(CustServ.Calls)) +
   geom_bar()
+
+#  Analiza planu międzynarodowego
+
+describe(Intl.Charge[Int.l.Plan=="yes"], quant=c(0.25, 0.75), omit=TRUE, IQR=TRUE)[
+  c("mean", "trimmed", "sd", "min", "max", "range", "Q0.25", "median", "Q0.75", "IQR", "skew", "kurtosis")]
+describe(Intl.Charge[Int.l.Plan=="no"], quant=c(0.25, 0.75), omit=TRUE, IQR=TRUE)[
+  c("mean", "trimmed", "sd", "min", "max", "range", "Q0.25", "median", "Q0.75", "IQR", "skew", "kurtosis")]
+
+ggplot(dane, aes(x=Intl.Mins, y=Intl.Charge, col=Int.l.Plan)) +
+  geom_point(alpha=0.5) +
+  scale_color_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak")) +
+  labs(x="Liczba minut na połączenia międzynarodowe", y="Opłata za połączenia międzynarodowe")
+#  Wygląda na to, że obecnie klientom nie opłaca się korzystanie
+#  z planu połączeń międzynarodowych, bo i tak płacą "tyle samo"
+
+ggplot(dane, aes(x=Int.l.Plan, y=Intl.Charge/Intl.Mins, fill=Int.l.Plan)) +
+  geom_boxplot() +
+  labs(x="Plan międzynarodowy", y="Średnia opłata za minutę połączenia międzynarodowego") +
+  scale_x_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+
+ggplot(dane, aes(x=Intl.Mins, fill=Int.l.Plan)) +
+  geom_histogram() +
+  labs(x="Liczba minut na połączenia międzynarodowe", y="Liczba wystąpień") +
+  scale_fill_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak"))
+
+ggplot(dane, aes(x=as.factor(Intl.Calls), y=Intl.Charge/Intl.Mins, col=Int.l.Plan)) +
+  geom_boxplot() +
+  scale_color_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak")) +
+  labs(x="Liczba połączeń międzynarodowych", y="Średnia opłata za minutę połączenia międzynarodowego")
