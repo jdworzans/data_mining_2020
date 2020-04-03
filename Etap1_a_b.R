@@ -5,16 +5,19 @@ dane <- read.csv(file="churn.txt")
 head(dane)
 
 #eksplorowanie struktury danych
-str(dane) 
-#zmienne area.code i phone powinny być jakościowe (tworzą id klienta)
-#według opisu danych zmienna Day.charge powinna być całkowita
-
-#można utworzyć zmienną jakościową (numer telefonu wraz z numerem kierunkowym): id_client
-#dane$Area.Code <- as.factor(dane$Area.Code)
-#ID <- unite(dane[,3:4], col="id_client", sep="-")
-#dane <- cbind(ID, dane)
-
 paste("Liczba wierszy:", as.character(nrow(dane)))
 paste("Liczba kolumn:", as.character(ncol(dane)))
+str(dane) 
+#według opisu danych zmienna Day.charge powinna być całkowita (?)
+
+#usunięcie zmiennych Area.Code i Phone pełniących rolę ID klienta:
+dane <- dane[,c(-3,-4)]
+
+
+
+
+
+
+
 
 
