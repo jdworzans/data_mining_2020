@@ -13,6 +13,8 @@ str(dane)
 #usunięcie zmiennych Area.Code i Phone pełniących rolę ID klienta:
 dane <- dane[,c(-3,-4)]
 
+#w zbiorze nie ma wartości brakujących
+sum(is.na(dane)) #=0
 
 
 
