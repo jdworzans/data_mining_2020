@@ -8,10 +8,14 @@ str(dane)
 #według opisu danych zmienna Day.charge powinna być całkowita (?)
 
 #usunięcie zmiennych Area.Code i Phone pełniących rolę ID klienta:
-dane <- dane[,c(-3,-4)]
+dane1 <- dane[,-4]
 
 #w zbiorze nie ma wartości brakujących
 sum(is.na(dane)) #=0
+
+#zapisywanie wstępnie przeanalizowanych danych do pliku: churn1.txt
+
+write.table(dane1, file="churn1.txt", row.names=FALSE)
 
 
 
