@@ -1,4 +1,5 @@
 library(ggplot2)
+library(ggcorrplot)
 library(psych)
 
 dane <- read.csv(file="churn.txt")
@@ -134,3 +135,13 @@ ggplot(dane, aes(x=as.factor(Intl.Calls), y=Intl.Charge/Intl.Mins, col=Int.l.Pla
   geom_boxplot() +
   scale_color_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak")) +
   labs(x="Liczba połączeń międzynarodowych", y="Średnia opłata za minutę połączenia międzynarodowego")
+
+## część C - wykrety rozrzutu dla par zmiennych ciągłych
+
+ggcorrplot(cor(dane[, unlist(lapply(dane, is.numeric))]))
+
+#  Widać, że między tymi zmiennymi występuje liniowa zależność:
+ggplot(dane, aes(Day.Mins, Day.Charge)) + geom_point()
+ggplot(dane, aes(Eve.Mins, Eve.Charge)) + geom_point()
+ggplot(dane, aes(Night.Mins, Night.Charge)) + geom_point()
+ggplot(dane, aes(Intl.Mins, Intl.Charge)) + geom_point()
