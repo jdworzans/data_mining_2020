@@ -145,3 +145,8 @@ ggplot(dane, aes(Day.Mins, Day.Charge)) + geom_point()
 ggplot(dane, aes(Eve.Mins, Eve.Charge)) + geom_point()
 ggplot(dane, aes(Night.Mins, Night.Charge)) + geom_point()
 ggplot(dane, aes(Intl.Mins, Intl.Charge)) + geom_point()
+
+ggplot(dane, aes(Account.Length, CustServ.Calls)) + geom_jitter()
+ggplot(dane, aes(VMail.Message, CustServ.Calls)) + geom_jitter()
+ggplot(dane, aes(x=CustServ.Calls, fill=VMail.Plan)) + geom_histogram()
+ggplot(dane, aes(Total.Calls, CustServ.Calls)) + geom_jitter()
