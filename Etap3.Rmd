@@ -1,0 +1,112 @@
+---
+title: "Raport nr 1"
+author: "Jakub Dworzański, Emilia Kowal"
+output: pdf_document
+data: 5 kwietnia 2020
+---
+
+## Etap 3
+
+##### Wczytujemy biblioteki oraz dane, które zostały juz poddane wstępnej analizie:
+
+```{r}
+library(ggplot2)
+library(psych)
+
+dane <- readRDS("cleaned_churn.rds")
+```
+
+##### Dzielimy dane na dwie podgrupy - klientów, którzy zrezygnowali z usług ilojalnych klientów
+
+```{r}
+group_t <- dane[which(dane$Churn.=="True."),]
+group_f <- dane[which(dane$Churn.=="False."),]
+```
+
+##### Porównujemy podstawowe wskaźniki ilościowe dla obu grup:
+
+```{r eval=FALSE}
+print("wskaźniki ilościowe dla grupy, która zrezygnowała z usług.")
+describe(group_t, quant=c(0.25, 0.75), omit=TRUE, IQR=TRUE)[
+  c("mean", "trimmed", "sd", "min", "max", "range", "Q0.25", "median", "Q0.75", "IQR", "skew", "kurtosis")]
+
+print("Wskaźniki ilościowe dla grupy, która nie zrezygnowała z usług.")
+describe(group_f, quant=c(0.25, 0.75), omit=TRUE, IQR=TRUE)[
+  c("mean", "trimmed", "sd", "min", "max", "range", "Q0.25", "median", "Q0.75", "IQR", "skew", "kurtosis")]
+```
+
+##### Tworzymy wykresy pudełkowe dla poszczególnych grup:
+
+```{r eval=FALSE}
+#koszty połączeń krajowych na dobę:
+ggplot(dane, aes(x=Churn., y=Day.Charge+Eve.Charge+Night.Charge, fill=Churn.)) +
+  geom_boxplot() +
+  labs(x="Decyzja o rezygnacji", y="Całodobowy koszt za połączenia", title="Koszty połączeń krajowych na dobę dla obu grup klientów") +
+  scale_x_discrete(name="Decyzja o rezygnacji", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+
+#ilość połączeń na dobę:
+ggplot(dane, aes(x=Churn., y=Day.Calls+Eve.Calls+Night.Calls, fill=Churn.)) +
+  geom_boxplot() +
+  labs(x="Decyzja o rezygnacji", y="Całodobowa liczba połączeń", title="Liczba połączeń krajowych wykonanych przez całą dobę dla obu grup klientów") +
+  scale_x_discrete(name="Decyzja o rezygnacji", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+```
+Jaki widać, mimo iż liczba wykonanych połączeń dla obu grup jest podobna, to koszty poniesione za rozmowy są większe dla grupy klientów, która postanowiła zrezygnować z usług sieci telefonii komórkowej.
+
+Sprawdzamy, jak długo sumarycznie, trwały rozmowy klientów z podziałem na grupy.
+
+```{r eval=FALSE}
+ggplot(dane, aes(x=Churn., y=Day.Mins+Eve.Mins+Night.Mins, fill=Churn.)) +
+  geom_boxplot() +
+  labs(x="Decyzja o rezygnacji", y="Całodobowa liczba minut poświęconych na rozmowy", title="Czas trwania połączeń krajowych wykonanych w ciągu doby dla obu grup") +
+  scale_x_discrete(name="Decyzja o rezygnacji", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+```
+
+Pomimo faktu, że obie grupy wykonują podobną liczbę połączeń, to czas rozmowy jest często dłuższy u grupy, która wykazała brak zainteresowania obecną ofertą sieci komórkowej, tj. osobom, które spędzają więcej czasu na rozmowach telefonicznych, mogła nie zostać przedstawiona wystarczająco korzystna dla nich oferta.
+
+
+Sprawdzamy, jak przedstawia się rozkład połączeń w ciągu dnia:
+
+``` {r eval=FALSE}
+#liczba połączeń krajowych z zaznaczeniem decyzji o rezygnacji z usług:
+ggplot(dane, aes(x=Day.Mins, y=..density..)) +
+  geom_histogram(bins=20)+
+   geom_density()
+```
+Rozkład przypomina normalny, jednomodalny i symetryczny.
+
+Analizujemy, w których stanach najwięcej klientów zrezygnowało z usług:
+
+```{r fig.width=12}
+ggplot(group_t, aes(State)) + geom_bar() +labs(title="Liczba osób, które zrezygnowały z usług, dla poszczególnych stanów.")
+table(group_t$State)
+```
+ 
+ Spośród klientów rezygnujących z usług, najwięcej zamieszkiwało odpowiednio stany: Teksas, New Jersey oraz Maryland.
+ 
+ 
+ Z wcześniejszej analizy wynikało, że klienci, którzy więli udział w planie międzynardowym, nie uzyskali korzystniejszych cen połączeń międzynarodowych. dlatego też sprawdzamy, ilu spośród klientów, którzy zrezygnowali, wyraziło zainteresowanie planem międzynarodowym.
+ 
+```{r}
+table(dane$Churn., dane$Int.l.Plan)
+
+plot(dane$Int.l.Plan~dane$Churn., main="Osoby rezygnujące, a udział w planie międzynarodowym.")
+
+```
+Wśród osób rezygnujących z usług operatora, aż 137 na 483 brało udział w planie międzynarodowym.
+
+Dokładniejsze statystyki dla opłat za rozmowy międzynarodowe dla grupy rezygnującej z usług operatora:
+
+Dla grupy z planem międzynarodowym:
+```{r}
+describe(group_t$Intl.Charge[group_t$Int.l.Plan == "yes"], quant=c(0.25, 0.75), IQR=TRUE)[
+  c("mean", "trimmed", "sd", "min", "max", "range", "Q0.25", "median", "Q0.75", "IQR", "skew", "kurtosis")]
+```
+
+Bez planu międzynarodowego:
+```{r}
+describe(group_t$Intl.Charge[group_t$Int.l.Plan == "yes"], quant=c(0.25, 0.75), IQR=TRUE)[
+  c("mean", "trimmed", "sd", "min", "max", "range", "Q0.25", "median", "Q0.75", "IQR", "skew", "kurtosis")]
+```
