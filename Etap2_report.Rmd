@@ -1,0 +1,99 @@
+---
+title: "Etap 2"
+author: "Jakub Dworzański"
+date: "4 04 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggcorrplot)
+dane <- read.csv(file="churn.txt")
+attach(dane)
+MAIN_COLOR="#69b3a2"
+CENTER_TITLE = theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Analiza opisowa - wskaźniki sumaryczne i wykresy
+## 1. Wyznacz podstawowe wskaźniki sumaryczne (miary położenia i rozproszenia) dla poszczególnych cech/zmiennych.
+
+```{r summary_table, echo=FALSE}
+library(knitr)
+kable(
+  psych::describe(
+    dane, 
+    quant=c(0.25, 0.75),
+    omit=TRUE,
+    IQR=TRUE
+    )[
+      c(
+        "mean",
+        "sd",
+        "min",
+        "max",
+        "Q0.25",
+        "median",
+        "Q0.75",
+        "range",
+        "IQR",
+        "skew",
+        "kurtosis"
+        )
+      ],
+  col.names = c(
+    "średnia", "odchylenie standardowe", "min", "max", "1. kwartyl", "mediana", "3. kwartyl", "rozstęp", "IQR", "skośność", "kurtoza"
+  ),
+  digits = 2
+)
+```
+
+
+
+## 2. Zilustruj rozkład poszczególnych cech/zmiennych za pomocą odpowiednich wykresów (wykresy słupkowe, histogramy, wykresy pudełkowe itp.).
+```{r distributions, echo=FALSE}
+
+ggplot(dane, aes(VMail.Plan)) + 
+  stat_count(fill=MAIN_COLOR) +
+  ggtitle("Wykres słupkowy dla planu poczty głosowej") +
+  xlab("Plan poczty głosowej") + ylab("") +
+  CENTER_TITLE
+
+ggplot(subset(dane, VMail.Plan == "yes"), aes(VMail.Message)) +
+  geom_bar(fill=MAIN_COLOR) +
+  labs(x="Liczba wiadomości głosowych", y="Liczba wystąpień") +
+  ggtitle("Histogram liczby wiadomości głosowych dla kientów korzystających poczty głosowej") + CENTER_TITLE
+
+ggplot(dane, aes(Account.Length)) + geom_boxplot(fill=MAIN_COLOR) + labs(x="Aktywność konta w dniach") +
+  ggtitle("Wykres pudełkowy długości aktywności konta") + CENTER_TITLE
+
+ggplot(dane, aes(CustServ.Calls)) + geom_bar(fill=MAIN_COLOR) +
+  xlab("Liczba połączeń z obsługą klienta") +
+  ylab("Liczba wystąpien") +
+  ggtitle("Histogram liczby połączeń z obsługą klienta") +
+  scale_x_continuous(breaks = 0:9) + CENTER_TITLE
+
+ggplot(dane, aes(Day.Charge + Eve.Charge + Night.Charge)) + geom_boxplot(fill=MAIN_COLOR) + labs(x="Opłata za połączenia (z wykluczeniem połączeń międzynarodowych)") +
+  ggtitle("Wykres pudełkowy dla opłat za połączenia") + CENTER_TITLE
+```
+
+
+
+## 3. Wykorzystując wykresy rozrzutu dla par zmiennych ciągłych, przeanalizuj czy występują istotne (np. liniowe) zależności pomiędzy zmiennymi.
+```{r plots, echo=FALSE}
+ggcorrplot(cor(dane[, unlist(lapply(dane, is.numeric))])) + scale_fill_distiller(limits=c(-1,1), palette = "RdBu", name="Wsp. korelacji") +
+  ggtitle("Macierz korelacji pomiędzy zmiennymi") + CENTER_TITLE
+
+ggplot(dane, aes(Day.Mins, Day.Charge)) + geom_point(color=MAIN_COLOR) +
+  xlab("Liczba minut spośród rozmów w ciągu dnia") + ylab("Opłata za połączania w ciągu dnia") +
+  ggtitle("Zależność opłaty od liczby minut w ciągu dnia") + CENTER_TITLE
+  
+```
+
+## 4. Zinterpretuj otrzymane rezultaty, w szczególności odpowiadając na pytania:
+### Jaki jest zakres możliwych wartości dla poszczególnych zmiennych?
+### W przypadku zmiennych ilościowych:
+#### Czy wszystkie zmienne mają rozkład symetryczny?
+#### Które cechy charakteryzują się największą zmiennością
+### W przypadku zmiennych jakościowych:
+#### Co można powiedzie¢ o częstości przyjmowania poszczególnych kategorii?
