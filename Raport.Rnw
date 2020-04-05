@@ -15,7 +15,12 @@
 <<ustawienia_globalne, echo=FALSE, eval=TRUE, warning=FALSE>>=
 library(knitr)
 library(xtable) #pakiet do tworzenia tabel w formacie LaTeX'a
+library(ggplot2)
+library(ggcorrplot)
 opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, fig.height=4)
+
+MAIN_COLOR="#69b3a2"
+CENTER_TITLE = theme(plot.title = element_text(hjust = 0.5))
 # UWAGA: w razie potrzeby można zmieniać te ustawienia w danym chunk'u!
 @
 
@@ -86,9 +91,148 @@ dane1 <- dane[,-4]
 W języku R brakujące wartości są reprezentowane symbolem NA. Wyszukujemy ich za pomocą funkcji \texttt{is.na()}.
 
 <<>>=
-sum(is.na(dane1))
+sum(is.na(dane))
 @
 
 W danych \texttt{churn.txt} nie ma wartości brakujących.
+
+\subsection{Analiza opisowa --- wskaźniki sumaryczne i wykresy}
+
+\subsubsection*{Rozkład poszczególnych zmiennych}
+
+<<summary_part_1, echo=FALSE>>=
+summary = psych::describe(
+    dane, 
+    quant=c(0.25, 0.75),
+    omit=TRUE,
+    IQR=TRUE
+    )[
+      c(
+        "mean",
+        "sd",
+        "min",
+        "max",
+        "Q0.25",
+        "median",
+        "Q0.75",
+        "IQR",
+        "skew",
+        "kurtosis"
+        )]
+kable(
+  summary[c("mean","sd","min","max")],
+  col.names = c(
+    "średnia", "odchylenie standardowe", "min", "max"
+  ),
+  digits = 2, format = "latex", caption="Wskaźniki sumaryczne"
+)
+@
+<<summary_part_2, echo=FALSE>>=
+kable(
+  summary[c("Q0.25","median","Q0.75","IQR","skew","kurtosis")],
+  col.names=c( "1. kwartyl", "mediana", "3. kwartyl","IQR", "skośność", "kurtoza"),
+   digits = 2, format = "latex", caption="Wskaźniki sumaryczne c.d."
+)
+@
+
+
+Na początek wyznaczamy podstawowe wskaźniki sumaryczne dla wszystkich zmiennych numerycznych, ktore możemy zobaczyć w tabelach \ref{tab:summary_part_1} i \ref{tab:summary_part_2}.
+
+Aby lepiej zbadać poszczególne cechy, sporządzimy wykresy ich rozkladów w badanym zbiorze danych.
+
+
+
+<<voice_mail_distribution, echo=FALSE, fig.cap="Wykres słupkowy dla planu poczty głosowej">>=
+ggplot(dane, aes(VMail.Plan)) + 
+  stat_count(fill=MAIN_COLOR) +
+  xlab("Plan poczty głosowej") +
+  ylab("Liczba klientów") +
+  scale_x_discrete(labels=c("nie", "tak"))
+@
+
+<<vmail_messages_distributions, echo=FALSE, fig.cap="Histogram liczby wiadomości głosowych dla kientów korzystających poczty głosowej">>=
+ggplot(subset(dane, VMail.Plan == "yes"), aes(VMail.Message)) +
+  geom_bar(fill=MAIN_COLOR) +
+  xlab("Liczba wiadomości głosowych") +
+  ylab("Liczba wystąpień")
+@
+
+<<account_length_distribution, echo=FALSE, fig.cap="Wykres pudełkowy długości aktywności konta">>=
+ggplot(dane, aes(Account.Length)) +
+  geom_boxplot(fill=MAIN_COLOR) +
+  labs(x="Aktywność konta w dniach") +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+@
+
+<<service_calls_distribution, echo=FALSE, fig.cap="Histogram liczby połączeń z obsługą klienta">>=
+ggplot(dane, aes(CustServ.Calls)) +
+  geom_bar(fill=MAIN_COLOR) +
+  xlab("Liczba połączeń z obsługą klienta") +
+  ylab("Liczba wystąpien") +
+  scale_x_continuous(breaks = 0:9)
+@
+
+
+
+<<total_charge_distribution, echo=FALSE, fig.cap="Wykres pudełkowy dla opłat za połączenia">>=
+ggplot(dane, aes(Day.Charge + Eve.Charge + Night.Charge)) +
+  geom_boxplot(fill=MAIN_COLOR) +
+  xlab("Opłata za połączenia (z wykluczeniem połączeń międzynarodowych)") +
+  scale_x_continuous(limits=c(0, 100)) +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+@
+
+Na wykresie \ref{fig:voice_mail_distribution} można zauważyć, że rozkład nie jest symetryczny. Ponieważ plan międzynarodowy również charakteryzuje się dość istotną asymetrią, to możemy wnioskować, iż klienci niechętnie korzystają z dodatkowych usług oferowanych przez firmę.
+
+Na podstawie tabel i wykresów (np. \ref{fig:vmail_messages_distributions}, \ref{fig:total_charge_distribution}) możemy zauważyć, że większość zmiennych charakteryzuje się symetrycznym rozkładem. Widać również, że klienci chętniej dzwonią w taryfie wieczornej oraz nocnej.
+
+\subsubsection*{Zależności pomiędzy parami cech}
+
+Wyznaczymy macierz korelacji, aby sprawdzić, czy pomiędzy poszczególnymi cechami występują liniowe zależności:
+
+<<correaltion_matrix, echo=FALSE, fig.cap="Macierz korelacji pomiędzy zmiennymi">>=
+ggcorrplot(cor(dane[, unlist(lapply(dane, is.numeric))])) + scale_fill_distiller(limits=c(-1,1), palette = "RdBu", name="Wsp. korelacji")
+@
+
+
+<<day_charge_with_minutes, echo=FALSE, fig.cap="Zależność opłaty od liczby minut w ciągu dnia">>=
+ggplot(dane, aes(Day.Mins, Day.Charge)) + geom_point(color=MAIN_COLOR) +
+  xlab("Liczba minut spośród rozmów w ciągu dnia") + ylab("Opłata za połączenia w ciągu dnia")
+@
+
+Istotnie, pomiędzy parami zmiennych \texttt{Day.Charge}, \texttt{Day.Mins} występuje w pełni liniowa zależność. Liniowa zależność występuje również między analogicznymi zmiennymi w pozostałych częściach dnia, zatem możemy się spodziewać, że opłata za minutę w określonej części dnia jes stała i niezależna od długości rozmowy. Pozostałe zmienne numeryczne nie są ze sobą zbyt dobrze skorelowane.
+
+Przeanalizujemy również ofertę operatora na podstawie usług.
+
+<<int_hist, echo=FALSE, fig.cap="Histogram liczby połączeń z podziałem ze względu na plan międzynarodowy">>=
+ggplot(dane, aes(x=Intl.Mins, fill=Int.l.Plan)) +
+  geom_histogram(binwidth=1) +
+  xlab("Liczba minut na połączenia międzynarodowe") +
+  ylab("Liczba wystąpień") +
+  scale_fill_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak")) +
+  theme(legend.position="bottom")
+@
+
+
+<<int_box, echo=FALSE, fig.cap="Wykresy pudełkowe średniej ceny za minutę połączenia międzynarodowego w zależności od liczby połączeń i z podziałem na usługę planu międzynarodowego">>=
+ggplot(subset(dane, Intl.Calls!=0), aes(x=as.factor(Intl.Calls), y=Intl.Charge/Intl.Mins, col=Int.l.Plan)) +
+  geom_boxplot() +
+  scale_color_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak")) +
+  xlab("Liczba połączeń międzynarodowych") +
+  ylab("Opłata za minutę połączenia międzynarodowego") +
+  theme(legend.position="bottom")
+@
+
+
+Na podstawie wykresów \ref{fig:int_hist} i \ref{fig:int_box}, możemy wysunąć hipotezę, że plan międzynarodowy jest nieatrakcyjny, ponieważ nie widać, aby przynosił klientom jakiekolwiek wymierne korzyści, np. opłatę za minutę połączenia. Możemy przypuszczać, że jest to przyczyna małej ilości klientów, wybierających ten produkt.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Podsumowanie}
+Najważniejsze wnioski, jakie udało się wysnuć na podstawie przeprowadzonych analiz/eksperymentów. Wnioski mogą być wypunktowane, tzn.:
+\begin{itemize}
+\item Tutaj wniosek nr 1
+\item Tutaj wniosek nr 2
+\item  \dots
+\end{itemize}
 
 \end{document}
