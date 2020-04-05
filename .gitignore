@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# TeX files
+*.pdf
+*.tex
+*.log
+*.toc
+*.synctex.gz
