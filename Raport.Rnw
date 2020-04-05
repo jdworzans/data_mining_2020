@@ -71,30 +71,30 @@ kable(
   data.frame(
     zmienna=names(dane),
     typ=sapply(dane, is.factor),
-    pierwsze.wartosci=sapply(dane, function(x) paste0(head(x), collapse=", "))
-  ), row.names=FALSE, col.names = c("Zmienna", "Zmienna jakościowa", "Pierwsze wartości")
+    pierwsze.wartosci=sapply(dane, function(x) paste0(head(x, n=4), collapse=", "))
+  ), row.names=FALSE, col.names = c("Zmienna", "Zmienna jakościowa", "Pierwsze wartości"), caption="Opis danych", format="latex"
 )
 @
 
-Zmienna \texttt{Area.Code}, zgodnie z opisem, powinna być zmienną jakościową, dlatego zmieniamy jej typ.
+W tabeli \ref{tab:data_info} widzimy, że zmienna \texttt{Area.Code}, zgodnie z opisem, powinna być zmienną jakościową, dlatego zmieniamy jej typ na \texttt{factor}.
 
 <<area_code_as_factor>>=
 dane$Area.Code <- as.factor(dane$Area.Code)
 @
 
-Ponieważ reszta zmiennych została odczytana poprawnie, możemy przeanalizować przydatność zmiennych. Zmienna \texttt{Phone} stanowi id klienta i nie będzie kluczowa w dalszej analizie.
+Ponieważ reszta zmiennych została odczytana poprawnie, możemy przeanalizować przydatność zmiennych. Zmienna \texttt{Phone} stanowi id klienta i nie będzie kluczowa w dalszej analizie, dlatego ją usuniemy.
 
 <<drop_phone_number>>=
-dane1 <- dane[,-4]
+dane <- dane[,-4]
 @
 
-W języku R brakujące wartości są reprezentowane symbolem NA. Wyszukujemy ich za pomocą funkcji \texttt{is.na()}.
+Wyszukujemy brakujących wartości w zbiorze danych:
 
 <<>>=
 sum(is.na(dane))
 @
 
-W danych \texttt{churn.txt} nie ma wartości brakujących.
+Widzimy, że w danych \texttt{churn.txt} nie ma wartości brakujących.
 
 \subsection{Analiza opisowa --- wskaźniki sumaryczne i wykresy}
 
@@ -190,8 +190,8 @@ Na podstawie tabel i wykresów (np. \ref{fig:vmail_messages_distributions}, \ref
 
 Wyznaczymy macierz korelacji, aby sprawdzić, czy pomiędzy poszczególnymi cechami występują liniowe zależności:
 
-<<correaltion_matrix, echo=FALSE, fig.cap="Macierz korelacji pomiędzy zmiennymi">>=
-ggcorrplot(cor(dane[, unlist(lapply(dane, is.numeric))])) + scale_fill_distiller(limits=c(-1,1), palette = "RdBu", name="Wsp. korelacji")
+<<correlation_matrix, echo=FALSE, fig.cap="Macierz korelacji pomiędzy zmiennymi">>=
+ggcorrplot(cor(dane[, unlist(lapply(dane, is.numeric))]))# + scale_fill_distiller(limits=c(-1,1), palette = "RdBu", name="Wsp. korelacji")
 @
 
 
@@ -200,7 +200,7 @@ ggplot(dane, aes(Day.Mins, Day.Charge)) + geom_point(color=MAIN_COLOR) +
   xlab("Liczba minut spośród rozmów w ciągu dnia") + ylab("Opłata za połączenia w ciągu dnia")
 @
 
-Istotnie, pomiędzy parami zmiennych \texttt{Day.Charge}, \texttt{Day.Mins} występuje w pełni liniowa zależność. Liniowa zależność występuje również między analogicznymi zmiennymi w pozostałych częściach dnia, zatem możemy się spodziewać, że opłata za minutę w określonej części dnia jes stała i niezależna od długości rozmowy. Pozostałe zmienne numeryczne nie są ze sobą zbyt dobrze skorelowane.
+Istotnie, na Rys. \ref{fig:correlation_matrix} widać, że pomiędzy parami zmiennych \texttt{Day.Charge}, \texttt{Day.Mins} występuje w pełni liniowa zależność. Liniowa zależność występuje również między analogicznymi zmiennymi w pozostałych częściach dnia, zatem możemy się spodziewać, że opłata za minutę w określonej części dnia jes stała i niezależna od długości rozmowy. Pozostałe zmienne numeryczne nie są ze sobą zbyt dobrze skorelowane.
 
 Przeanalizujemy również ofertę operatora na podstawie usług.
 
@@ -231,76 +231,6 @@ Na podstawie wykresów \ref{fig:int_hist} i \ref{fig:int_box}, możemy wysunąć
 <<group_t_part1, echo=FALSE>>=
 group_t <- dane[which(dane$Churn.=="True."),]
 group_f <- dane[which(dane$Churn.=="False."),]
-
-summary_t = psych::describe(
-    group_t, 
-    quant=c(0.25, 0.75),
-    omit=TRUE,
-    IQR=TRUE
-    )[
-      c(
-        "mean",
-        "sd",
-        "min",
-        "max",
-        "Q0.25",
-        "median",
-        "Q0.75",
-        "IQR",
-        "skew",
-        "kurtosis"
-        )]
-summary_f = psych::describe(
-    group_f, 
-    quant=c(0.25, 0.75),
-    omit=TRUE,
-    IQR=TRUE
-    )[
-      c(
-        "mean",
-        "sd",
-        "min",
-        "max",
-        "Q0.25",
-        "median",
-        "Q0.75",
-        "IQR",
-        "skew",
-        "kurtosis"
-        )]
-kable(
-  summary_t[c("mean","sd","min","max")],
-  col.names = c(
-    "średnia", "odchylenie standardowe", "min", "max"
-  ),
-  digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla nielojalnych klientów"
-)
-@
-
-<<group_f_part1, echo=FALSE>>=
-kable(
-  summary_f[c("mean","sd","min","max")],
-  col.names = c(
-    "średnia", "odchylenie standardowe", "min", "max"
-  ),
-  digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla lojalnych klientów"
-)
-@
-
-<<group_t_part2, echo=FALSE>>=
-kable(
-  summary_t[c("Q0.25","median","Q0.75","IQR","skew","kurtosis")],
-  col.names=c( "1. kwartyl", "mediana", "3. kwartyl","IQR", "skośność", "kurtoza"),
-   digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla nielojalnych klientów c.d."
-)
-@
-
-<<group_f_part2, echo=FALSE>>=
-kable(
-  summary_f[c("Q0.25","median","Q0.75","IQR","skew","kurtosis")],
-  col.names=c( "1. kwartyl", "mediana", "3. kwartyl","IQR", "skośność", "kurtoza"),
-   digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla lojalnych klientów c.d."
-)
 @
 
 <<charge_by_churn, echo=FALSE, fig.cap="Koszty połączeń krajowych na dobę dla obu grup klientów">>=
@@ -336,12 +266,15 @@ Pomimo faktu, że obie grupy wykonują podobną liczbę połączeń, to czas roz
 
 Sprawdzimy również, jak przedstawia się rozkład połączeń w ciągu dnia:
 
-<<echo=FALSE>>=
-ggplot(dane, aes(x=Day.Mins, fill=Churn.)) +
+<<mins_by_churn_hist, echo=FALSE, fig.cap="Histogram całkowitej liczby minut na połączenia krajowe">>=
+ggplot(dane, aes(x=(Day.Mins+Eve.Mins+Night.Mins) / (Day.Calls + Eve.Calls + Night.Calls), fill=Churn.)) +
+  xlab("Całkowita liczba minut na połączenia") +
+  ylab("Ilość wystąpień") +
+  scale_fill_discrete(name="Odejście od firmy", labels=c("Nie", "Tak")) +
   geom_histogram(bins=20)
 @
 
-Rozkład przypomina normalny, jednomodalny i symetryczny.
+Na podstawie wykresu \ref{fig:mins_by_churn_hist}, możemy zauważyć, że wśród osób, które odbywają wiele minut rozmów, potw.
 
 Analizujemy, w których stanach najwięcej klientów zrezygnowało z usług:
 
@@ -351,12 +284,17 @@ ggplot(group_t, aes(State)) + geom_bar(fill=MAIN_COLOR) +labs(title="Liczba osó
 
 Spośród klientów rezygnujących z usług, najwięcej zamieszkiwało odpowiednio stany: Teksas, New Jersey oraz Maryland.
 
-<<echo=FALSE, fig.cap="Osoby rezygnujące, a udział w planie międzynarodowym.">>=
-#ggplot(dane, aes(x=Int.l.Plan, fill=Churn.)) + geom_bar()
-plot(dane$Int.l.Plan~dane$Churn.)
+<<int_by_churn, echo=FALSE, fig.cap="Osoby rezygnujące, a udział w planie międzynarodowym.">>=
+plot(dane$Int.l.Plan~dane$Churn., col=c(MAIN_COLOR, "white"), ylab="Plan międzynarodowy", xlab="Odejście", xaxlabels=c("Nie","Tak"), yaxlabels =c("Nie", "Tak"))
 @
 
-Wśród osób rezygnujących z usług operatora, aż 137 na 483 brało udział w planie międzynarodowym.
+<<churn_by_int, echo=FALSE, fig.cap="Plan międzynarodowy, a rezygnacja usług">>=
+plot(dane$Churn.~dane$Int.l.Plan, col=c(MAIN_COLOR, "white"), ylab="Odejście", xlab="Plan międzynarodowy", xaxlabels=c("Nie","Tak"), yaxlabels =c("Nie", "Tak"))
+@
+
+
+
+Wśród osób rezygnujących z usług operatora, aż 137 na 483 brało udział w planie międzynarodowym (Rys.\ref{fig:int_by_churn}). Ponadto widać, że aż 42\% klientów, którzy korzystali z planu międzynarodowego, zrezygnowało z uslug (Rys.\ref{fig:churn_by_int}).
 
 Przeanalizujemy również liczbę telefonów do biura obsługi klienta, ponieważ przyczyną kontaktu z operatorem zazwyczaj są problemy różnego typu.
 
@@ -381,18 +319,18 @@ Widzimy na wykresie \ref{fig:cust_serv_by_churn}, że osoby, które podjęły de
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Podsumowanie}
 
-Z uzyskanych wyników, dowiedzieliśmy się, że większość klientów firmy, to klienci niekorzystający z dodatkowych usług, co jednak może być spowodowane nieadekwatną ofertą.
+Z uzyskanych wyników, dowiedzieliśmy się, że większość klientów firmy, to klienci niekorzystający z dodatkowych usług, co wskazuje na nieadekwatną lub nieatrakcyjną ofertą.
 
-Na podstawie przeprowadzonych analiz, możemy zauważyć, że odchodzenie klientów jest spodowowane ofertą, która jest dostosowana wyłącznie do podstawowych potrzeb. Widzimy, że dodatkowe usługi, takie jak plan międzynarodowy, nie są korzystne dla klientów i może to być przyczyną odchodzenia klientów z firmy. Ponadto, wygląda na to, że oferta nie jest dostosowana do osób, które dzwonią więcej niż pozostali. Przyczyny można również dopatrywać się w obsłudze klienta.
+Na podstawie przeprowadzonych analiz, możemy zauważyć, że odejście klientów jest spodowowane ofertą, która jest dostosowana wyłącznie do podstawowych potrzeb. Widzimy, że dodatkowe usługi, takie jak plan międzynarodowy, nie są korzystne dla klientów i może to być przyczyną odchodzenia klientów z firmy. Ponadto, wygląda na to, że z usług rezygnują osoby, które podczas trwania umowy wykorzystały więcej minut. Przyczyny można również dopatrywać się w nieodpowiednio przeszkolonych i przygotowanych konsultantach z biura obsługi klienta.
 
 Stąd, możemy wyszczególnić główne 3 problemy:
 
 \begin{itemize}
-\item Oferta nie jest dostosowana do osób, które dużo rozmawiają.
+\item Oferta nie jest dostosowana do osób, które podczas trwania umowy wykorzystują wiele minut.
 \item Plan międzynarodowy skłania ludzi do odejścia od firmy.
 \item Występują problemy z obsługą klienta, które nie są spowodowane powyższymi problemami.
 \end{itemize}
 
-Aby podnieść lojalność klientów, można dostosować ofertę międzynarodową do potrzeb klientów, przygotować dodatkową ofertę dla klientów, którzy rozmawiają więcej. Ponadto, można skontrolować biuro obsługi klienta, aby sprawdzić, czy przyczyną odejść są zaniedbania pracowników, czy też inne problemy.
+Aby zwiekszyć liczbę klientów, można dostosować ofertę międzynarodową do potrzeb klientów oraz przygotować dodatkową ofertę lojalnościową. Ponadto, można skontrolować biuro obsługi klienta, aby sprawdzić, czy przyczyną odejść są zaniedbania pracowników, czy też inne problemy.
 
 \end{document}
