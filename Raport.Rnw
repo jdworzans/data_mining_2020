@@ -1,0 +1,53 @@
+\documentclass[12pt, a4paper]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% dodatkowe pakiety LaTeX'a
+\usepackage[OT4]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ustawienia globalne
+<<ustawienia_globalne, echo=FALSE, warning=FALSE>>=
+library(knitr)
+library(xtable) #pakiet do tworzenia tabel w formacie LaTeX'a
+opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, fig.height=4)
+# UWAGA: w razie potrzeby można zmieniać te ustawienia w danym chunk'u!
+@
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% strona tytulowa
+\title{Raport nr 1}
+\author{Emilia Kowal [249716], Jakub Dworzański [249703]}
+\maketitle
+\tableofcontents
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Krótki opis zagadnienia}
+Zajmiemy się analizą opisową zbioru danych, zawierającego informacje o klientach operatora telekomunikacyjnego. Na podstawie odkrytych zależności, postaramy się, przede wszystkim, odpowiedzieć na trzy pytania:
+
+\begin{itemize}
+\item Które elementy obecnej oferty dla klientów można poprawić?
+\item Z jakich powodów klienci opuszczają naszą firmę?
+\item Jak można ich zachęcić do pozostania przy naszej ofercie?
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Opis eksperymentów/analiz}
+
+Eksperymenty będą polegały na analizie sumarycznych wskaźników i wykresów. Przeprowadzimy takie analizy dla poszczególnych cech oraz dla par zmiennych. Ponadto, wykonamy je z podziałem klientów na dwie grupy:
+\begin{itemize}
+\item lojalnych, którzy wciąż korzystają z naszych usług,
+\item nielojalnych, którzy zrezygnowali z naszych usług,
+\end{itemize}
+aby móc wyciągnąć prawidłowe wnioski.
+
+\end{document}
