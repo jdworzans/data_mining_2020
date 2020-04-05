@@ -226,6 +226,141 @@ ggplot(subset(dane, Intl.Calls!=0), aes(x=as.factor(Intl.Calls), y=Intl.Charge/I
 
 Na podstawie wykresów \ref{fig:int_hist} i \ref{fig:int_box}, możemy wysunąć hipotezę, że plan międzynarodowy jest nieatrakcyjny, ponieważ nie widać, aby przynosił klientom jakiekolwiek wymierne korzyści, np. opłatę za minutę połączenia. Możemy przypuszczać, że jest to przyczyna małej ilości klientów, wybierających ten produkt.
 
+\subsection{Analiza opisowa z podziałem na grupy}
+
+<<group_t_part1, echo=FALSE>>=
+group_t <- dane[which(dane$Churn.=="True."),]
+group_f <- dane[which(dane$Churn.=="False."),]
+
+summary_t = psych::describe(
+    group_t, 
+    quant=c(0.25, 0.75),
+    omit=TRUE,
+    IQR=TRUE
+    )[
+      c(
+        "mean",
+        "sd",
+        "min",
+        "max",
+        "Q0.25",
+        "median",
+        "Q0.75",
+        "IQR",
+        "skew",
+        "kurtosis"
+        )]
+summary_f = psych::describe(
+    group_f, 
+    quant=c(0.25, 0.75),
+    omit=TRUE,
+    IQR=TRUE
+    )[
+      c(
+        "mean",
+        "sd",
+        "min",
+        "max",
+        "Q0.25",
+        "median",
+        "Q0.75",
+        "IQR",
+        "skew",
+        "kurtosis"
+        )]
+kable(
+  summary_t[c("mean","sd","min","max")],
+  col.names = c(
+    "średnia", "odchylenie standardowe", "min", "max"
+  ),
+  digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla nielojalnych klientów"
+)
+@
+
+<<group_f_part1, echo=FALSE>>=
+kable(
+  summary_f[c("mean","sd","min","max")],
+  col.names = c(
+    "średnia", "odchylenie standardowe", "min", "max"
+  ),
+  digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla lojalnych klientów"
+)
+@
+
+<<group_t_part2, echo=FALSE>>=
+kable(
+  summary_t[c("Q0.25","median","Q0.75","IQR","skew","kurtosis")],
+  col.names=c( "1. kwartyl", "mediana", "3. kwartyl","IQR", "skośność", "kurtoza"),
+   digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla nielojalnych klientów c.d."
+)
+@
+
+<<group_f_part2, echo=FALSE>>=
+kable(
+  summary_f[c("Q0.25","median","Q0.75","IQR","skew","kurtosis")],
+  col.names=c( "1. kwartyl", "mediana", "3. kwartyl","IQR", "skośność", "kurtoza"),
+   digits = 2, format = "latex", caption="Wskaźniki sumaryczne dla lojalnych klientów c.d."
+)
+@
+
+<<charge_by_churn, echo=FALSE, fig.cap="Koszty połączeń krajowych na dobę dla obu grup klientów">>=
+ggplot(dane, aes(x=Churn., y=Day.Charge+Eve.Charge+Night.Charge, fill=Churn.)) +
+  geom_boxplot() +
+  labs(x="Decyzja o rezygnacji", y="Całodobowy koszt za połączenia") +
+  scale_x_discrete(name="Decyzja o rezygnacji", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+@
+
+<<calls_by_churn, echo=FALSE, fig.cap="Liczba połączeń krajowych wykonanych przez całą dobę dla obu grup klientów">>=
+ggplot(dane, aes(x=Churn., y=Day.Calls+Eve.Calls+Night.Calls, fill=Churn.)) +
+  geom_boxplot() +
+  labs(x="Decyzja o rezygnacji", y="Całodobowa liczba połączeń") +
+  scale_x_discrete(name="Decyzja o rezygnacji", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+@
+
+Jaki widać na wykresach \ref{fig:charge_by_churn} i \ref{fig:calls_by_churn}, mimo iż liczba wykonanych połączeń dla obu grup jest podobna, to koszty poniesione za rozmowy są większe dla grupy klientów, która postanowiła zrezygnować z usług sieci telefonii komórkowej.
+
+Sprawdzimy, jak długo sumarycznie, trwały rozmowy klientów z podziałem na grupy.
+
+<<mins_by_churn, echo=FALSE, fig.cap="Czas trwania połączeń krajowych wykonanych w ciągu doby dla obu grup">>=
+ggplot(dane, aes(x=Churn., y=Day.Mins+Eve.Mins+Night.Mins, fill=Churn.)) +
+  geom_boxplot() +
+  labs(x="Decyzja o rezygnacji", y="Całodobowa liczba minut poświęconych na rozmowy") +
+  scale_x_discrete(name="Decyzja o rezygnacji", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+@
+
+Pomimo faktu, że obie grupy wykonują podobną liczbę połączeń, to czas rozmowy jest często dłuższy u grupy, która wykazała brak zainteresowania obecną ofertą sieci komórkowej (Rys. \ref{fig:mins_by_churn}), tj. osobom, które spędzają więcej czasu na rozmowach telefonicznych, mogła nie zostać przedstawiona wystarczająco korzystna dla nich oferta.
+
+
+Sprawdzimy również, jak przedstawia się rozkład połączeń w ciągu dnia:
+
+<<>>=
+ggplot(dane, aes(x=Day.Mins, fill=Churn.)) +
+  geom_histogram(bins=20)
+@
+
+Rozkład przypomina normalny, jednomodalny i symetryczny.
+
+Analizujemy, w których stanach najwięcej klientów zrezygnowało z usług:
+
+<<>>=
+ggplot(group_t, aes(State)) + geom_bar(fill=MAIN_COLOR) +labs(title="Liczba osób, które zrezygnowały z usług, dla poszczególnych stanów.")
+@
+
+Spośród klientów rezygnujących z usług, najwięcej zamieszkiwało odpowiednio stany: Teksas, New Jersey oraz Maryland.
+
+<<echo=FALSE, fig.cap="Osoby rezygnujące, a udział w planie międzynarodowym.">>=
+#ggplot(dane, aes(x=Int.l.Plan, fill=Churn.)) + geom_bar()
+plot(dane$Int.l.Plan~dane$Churn.)
+@
+
+
+Wśród osób rezygnujących z usług operatora, aż 137 na 483 brało udział w planie międzynarodowym.
+
+Dokładniejsze statystyki dla opłat za rozmowy międzynarodowe dla grupy rezygnującej z usług operatora:
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Podsumowanie}
 Najważniejsze wnioski, jakie udało się wysnuć na podstawie przeprowadzonych analiz/eksperymentów. Wnioski mogą być wypunktowane, tzn.:
