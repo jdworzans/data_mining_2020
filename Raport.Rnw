@@ -336,7 +336,7 @@ Pomimo faktu, że obie grupy wykonują podobną liczbę połączeń, to czas roz
 
 Sprawdzimy również, jak przedstawia się rozkład połączeń w ciągu dnia:
 
-<<>>=
+<<echo=FALSE>>=
 ggplot(dane, aes(x=Day.Mins, fill=Churn.)) +
   geom_histogram(bins=20)
 @
@@ -345,7 +345,7 @@ Rozkład przypomina normalny, jednomodalny i symetryczny.
 
 Analizujemy, w których stanach najwięcej klientów zrezygnowało z usług:
 
-<<>>=
+<<echo=FALSE>>=
 ggplot(group_t, aes(State)) + geom_bar(fill=MAIN_COLOR) +labs(title="Liczba osób, które zrezygnowały z usług, dla poszczególnych stanów.")
 @
 
@@ -356,18 +356,43 @@ Spośród klientów rezygnujących z usług, najwięcej zamieszkiwało odpowiedn
 plot(dane$Int.l.Plan~dane$Churn.)
 @
 
-
 Wśród osób rezygnujących z usług operatora, aż 137 na 483 brało udział w planie międzynarodowym.
 
-Dokładniejsze statystyki dla opłat za rozmowy międzynarodowe dla grupy rezygnującej z usług operatora:
+Przeanalizujemy również liczbę telefonów do biura obsługi klienta, ponieważ przyczyną kontaktu z operatorem zazwyczaj są problemy różnego typu.
+
+<<cust_serv_by_churn, echo=FALSE, fig.cap="Liczba telefonów do biura obsługi klienta, a liczba klientów, którzy zrezygnowali">>=
+ggplot(dane, aes(x=Churn., y=CustServ.Calls, fill=Churn.)) +
+  geom_boxplot() +
+  labs(x="Decyzja o rezygnacji", y="Liczba połączeń z biurem obsługi klienta") +
+  scale_x_discrete(name="Decyzja o rezygnacji", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+@
+
+<<cust_serv_by_intl, echo=FALSE, fig.cap="liczba telefonów do biura obsługi klienta, a plan międzynarodowy">>=
+ggplot(group_t, aes(x=Int.l.Plan, y=CustServ.Calls, fill=Int.l.Plan)) +
+  geom_boxplot() +
+  labs(x="Plan międzynarodowy", y="Liczba połączeń z biura obsługi klienta") +
+  scale_x_discrete(name="Plan międzynarodowy", labels=c("Nie", "Tak")) +
+  theme(legend.position="none")
+@
+
+Widzimy na wykresie \ref{fig:cust_serv_by_churn}, że osoby, które podjęły decyzję o rezygnacji, wykonały średnio więcej telefonów do biura obsługi klienta. Jednocześnie, wzmożona liczba telefonów do biura obsługi klienta w przypadku osób, które postanowiły zrezygnować z usług, niekoniecznie musiała wynikać z niezbyt korzystnych warunków planu międzynarodowego (Rys.\ref{fig:cust_serv_by_intl}), czyli przyczyny można też dopatrywać się w niewykfalifikowanych pracownikach biura obsługi.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Podsumowanie}
-Najważniejsze wnioski, jakie udało się wysnuć na podstawie przeprowadzonych analiz/eksperymentów. Wnioski mogą być wypunktowane, tzn.:
+
+Z uzyskanych wyników, dowiedzieliśmy się, że większość klientów firmy, to klienci niekorzystający z dodatkowych usług, co jednak może być spowodowane nieadekwatną ofertą.
+
+Na podstawie przeprowadzonych analiz, możemy zauważyć, że odchodzenie klientów jest spodowowane ofertą, która jest dostosowana wyłącznie do podstawowych potrzeb. Widzimy, że dodatkowe usługi, takie jak plan międzynarodowy, nie są korzystne dla klientów i może to być przyczyną odchodzenia klientów z firmy. Ponadto, wygląda na to, że oferta nie jest dostosowana do osób, które dzwonią więcej niż pozostali. Przyczyny można również dopatrywać się w obsłudze klienta.
+
+Stąd, możemy wyszczególnić główne 3 problemy:
+
 \begin{itemize}
-\item Tutaj wniosek nr 1
-\item Tutaj wniosek nr 2
-\item  \dots
+\item Oferta nie jest dostosowana do osób, które dużo rozmawiają.
+\item Plan międzynarodowy skłania ludzi do odejścia od firmy.
+\item Występują problemy z obsługą klienta, które nie są spowodowane powyższymi problemami.
 \end{itemize}
+
+Aby podnieść lojalność klientów, można dostosować ofertę międzynarodową do potrzeb klientów, przygotować dodatkową ofertę dla klientów, którzy rozmawiają więcej. Ponadto, można skontrolować biuro obsługi klienta, aby sprawdzić, czy przyczyną odejść są zaniedbania pracowników, czy też inne problemy.
 
 \end{document}
