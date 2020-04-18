@@ -98,4 +98,38 @@ matchClasses(tab.x.fixed)
 #jest o (co najmniej) 40 punktów procentowych wyższa niż dla wyników
 #dyskretyzacji przeprowadzonych na zmiennej Sepal.Width
 
+
+#dyskretyzacja nienadzorowana dla cechy Petal.Width z wartościami odstąjącymi:
+d1 <- d
+d1[which.min(d1)] <- min(d1) - 2*IQR(d1)
+d1[which.max(d1)] <- max(d1) + 2*IQR(d1)
+
+#algorytm equal width:
+d1.disc.eq.width <- discretize(d1, method = "interval", breaks=3)
+tab.d1.eq.width <- table(d1.disc.eq.width, Species)
+tab.d1.eq.width
+matchClasses(tab.d1.eq.width)
+
+#algorytm equal frequency:
+d1.disc.eq.freq <- discretize(d1, method="frequency", breaks=3)
+tab.d1.eq.freq <- table(d1.disc.eq.freq, Species)
+tab.d1.eq.freq
+matchClasses(tab.d1.eq.freq)
+
+#algorytm k-means clustering:
+d1.disc.km.clus <- discretize(d1, method="cluster", breaks=3)
+tab.d1.km.clus <- table(d1.disc.km.clus, Species)
+tab.d1.km.clus
+matchClasses(tab.d1.km.clus)
+
+#dyskretyzacja dla zadanych przedziałów 
+d1.disc.fixed <- discretize(d1, method="fixed", breaks=c(-Inf, 0.75, 1.65, Inf))
+tab.d1.fixed <- table(d1.disc.fixed, Species)
+tab.d1.fixed
+matchClasses(tab.d1.fixed)
+
+#po zamianie wartości najmniejszej i największej wartościami
+#odstającymi dyskretyzacja według równej szerokości
+#dała wynik o poziomie zgodności 34.67% czyli aż o 61,33 punkta mniejszym
+
 #dyskretyzacja według równej szerokości wypada gorzej
