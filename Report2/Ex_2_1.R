@@ -132,4 +132,33 @@ matchClasses(tab.d1.fixed)
 #odstającymi dyskretyzacja według równej szerokości
 #dała wynik o poziomie zgodności 34.67% czyli aż o 61,33 punkta mniejszym
 
+#dyskretyzacja najmniejsza wartość zastąpiona wartością odstającą
+
+d2 <- d
+d2[which.min(d2)] <- min(d2) - 2*IQR(d2)
+
+#algorytm equal width:
+d2.disc.eq.width <- discretize(d2, method = "interval", breaks=3)
+tab.d2.eq.width <- table(d2.disc.eq.width, Species)
+tab.d2.eq.width
+matchClasses(tab.d2.eq.width)
+
+#algorytm equal frequency:
+d2.disc.eq.freq <- discretize(d2, method="frequency", breaks=3)
+tab.d2.eq.freq <- table(d2.disc.eq.freq, Species)
+tab.d2.eq.freq
+matchClasses(tab.d2.eq.freq)
+
+#algorytm k-means clustering:
+d2.disc.km.clus <- discretize(d2, method="cluster", breaks=3)
+tab.d2.km.clus <- table(d2.disc.km.clus, Species)
+tab.d2.km.clus
+matchClasses(tab.d2.km.clus)
+
+#dyskretyzacja dla zadanych przedziałów 
+d2.disc.fixed <- discretize(d2, method="fixed", breaks=c(-Inf, 0.75, 1.65, Inf))
+tab.d2.fixed <- table(d2.disc.fixed, Species)
+tab.d2.fixed
+matchClasses(tab.d2.fixed)
+
 #dyskretyzacja według równej szerokości wypada gorzej
