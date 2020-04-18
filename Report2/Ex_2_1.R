@@ -61,4 +61,41 @@ matchClasses(tab.d.fixed)
 #najgorszy wynik otrzymujemy dla dyskretyzacji według równej częstości
 #zgodność: 94.67%
 
+#dyskretyzacja nienadzorowana dla cechy Sepal.Width:
+x <- iris[, "Sepal.Width"]
+
+#algorytm equal width:
+x.disc.eq.width <- discretize(x, method = "interval", breaks=3)
+tab.x.eq.width <- table(x.disc.eq.width, Species)
+tab.x.eq.width
+matchClasses(tab.x.eq.width)
+
+#algorytm equal frequency:
+x.disc.eq.freq <- discretize(x, method="frequency", breaks=3, )
+tab.x.eq.freq <- table(x.disc.eq.freq, Species)
+tab.x.eq.freq
+matchClasses(tab.x.eq.freq)
+
+#algorytm k-means clustering:
+x.disc.km.clus <- discretize(x, method="cluster", breaks=3)
+tab.x.km.clus <- table(x.disc.km.clus, Species)
+tab.x.km.clus
+matchClasses(tab.x.km.clus)
+
+#dyskretyzacja dla zadanych przedziałów 
+x.disc.fixed <- discretize(x, method="fixed", breaks=c(-Inf, 2.85, 3.20, Inf))
+tab.x.fixed <- table(x.disc.fixed, Species)
+tab.x.fixed
+matchClasses(tab.x.fixed)
+
+#w przypadku dyskretyzacji dla cechy Sepal.Width najlepiej sprawdził się
+#algorytm k-means, który dał wynik o zgodności 56%
+#najgorzej wypadła dyskretyzacja według równej szerokości
+#zgodność: 50.67%
+
+
+#zgodność wyników dyskretyzacji dla cechy o najlepszych zdolnościach dyskryminacyjnych
+#jest o (co najmniej) 40 punktów procentowych wyższa niż dla wyników
+#dyskretyzacji przeprowadzonych na zmiennej Sepal.Width
+
 #dyskretyzacja według równej szerokości wypada gorzej
