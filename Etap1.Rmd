@@ -1,0 +1,53 @@
+---
+title: "Raport nr 1"
+author: "Jakub Dworzański, Emilia Kowal"
+output: pdf_document
+data: 5 kwietnia 2020
+---
+
+### Etap 1
+
+##### Opracowywane dane zawierają informacje o 3333 klientach sieci telefonii komórkowej oraz 21 zmiennych charakteryzujących klientów.
+
+Wczytujemy plik churn.txt:
+
+```{r}
+dane <- read.csv(file="churn.txt")
+```
+
+##### Po wczytaniu zbioru danych do przestrzeni roboczej, sprawdzamy poprawność poszczególnych typów zmiennych oraz rozmiar danych.
+```{r}
+str(dane)
+```
+
+Zmienna Area.Code, zgodnie z opisem, powinna być zmienną jakościową.
+
+```{r}
+dane$Area.Code <- as.factor(dane$Area.Code)
+```
+
+Reszta zmiennych została odczytana poprawnie.
+
+##### Przystępujemy do analizy przydatności zmiennych.
+Zmienna *Phone* stanowi id klienta i nie będzie kluczowa w dalszej analizie.
+
+```{r}
+dane1 <- dane[,-4]
+```
+
+##### Brakujące dane.
+
+W języku R brakujące wartości są reprezentowane symbolem NA. Wyszukujemy ich za pomocą funkcji is.na().
+
+```{r}
+sum(is.na(dane1))
+```
+
+W danych churn.txt nie ma wartości brakujących.
+
+##### Dane podanne wstępnej analizie zapisujemy do pliku.
+
+``` {r}
+saveRDS(dane1, file="cleaned_churn.rds")
+```
+
