@@ -58,17 +58,17 @@ summary(dane.pca)
 # PC2: 20%
 # PC3: 14%
 
-variance <- (dane.pca$sdev ^2)/sum(dane.pca$sdev^2)
-cum.variance <- cumsum(variance)
-df_zmienność <- data.frame(variance, cum.variance, names(pc))
+wariancja <- (dane.pca$sdev ^2)/sum(dane.pca$sdev^2)
+kum.wariancja <- cumsum(wariancja)
+df_zmienność <- data.frame(wariancja, kum.wariancja, names(pc))
 
 # udział wyjaśnionej wariancji: scree plot
-ggplot(df_zmienność, aes(x=names.pc., y=variance)) + 
+ggplot(df_zmienność, aes(x=names.pc., y=wariancja)) + 
   labs(x="Składowe główne", y="Wariancja (%)", 
        title="Procent zmienności dla poszczególnych składowych.") +
   geom_bar(stat='identity')
 
-ggplot(df_zmienność, aes(x=names.pc., y=cum.variance)) + 
+ggplot(df_zmienność, aes(x=names.pc., y=kum.wariancja)) + 
   labs(x="Składowe główne", y="Kumulatywna wariancja (%)", 
        title="Udział wyjaśnionej wariancji.") +
   geom_bar(stat='identity') +
