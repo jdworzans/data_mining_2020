@@ -136,5 +136,13 @@ ggcorrplot(cor(dane), colors=c("steelblue","white","darkred"), lab=T)
 # jest niższy, niż moglibyśmy tego oczekiwać, po spojrzeniu na dwuwykres. Ponadto, widzimy, że wbrew dwuwykresowi,
 # współczynnik korelacji pomiędzy powierzchnią stanu, a populacją jest bardzo bliski 0.
 
+# (g)
 
+# Udało się nam dość dobrze przedstawić wielowymiarowe dane, dotyczące stanów, przy pomocy 2 głównych składowych.
+# Dzięki redukcji wymiaru, udało nam się zaobserwować różnice między niektórymi grupami stanów.
+# Widzimy, że Alaska odstaje.
+# 2 składowe pozwalają na zadowalającą reperezentację danych. Przy 3 możemy wyjaśnić aż 80% wariancji
+# i dość dobrze zwizualizować wyniki na trójwymiarowym wykresie. Istotnym krokiem była standaryzacja,
+# gdybyśmy jej nie wykonali, to mimo pozornego wyjaśnienia wariancji przez pierwszą składową, byłaby
+# ona niemalże zmienną `Area`, dlatego nie pomogłoby to nam w redukcji wymiaru.
 
