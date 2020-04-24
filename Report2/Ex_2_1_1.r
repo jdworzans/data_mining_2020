@@ -6,7 +6,6 @@ library(datasets)
 library(ggplot2)
 library(pastecs)
 
-data(state)
 dane <- as.data.frame(state.x77)
 
 head(dane)
