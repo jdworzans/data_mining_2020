@@ -61,7 +61,6 @@ summary(dane.pca)
 
 variance <- (dane.pca$sdev ^2)/sum(dane.pca$sdev^2)
 cum.variance <- cumsum(variance)
-barplot(variance)
 df_zmienność <- data.frame(variance, cum.variance, names(pc))
 
 # udział wyjaśnionej wariancji: scree plot
