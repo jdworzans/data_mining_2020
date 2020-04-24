@@ -12,8 +12,20 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ustawienia globalne
-<<ustawienia_globalne, echo=FALSE, eval=TRUE, warning=FALSE, results=FALSE>>=
+<<ustawienia_globalne, echo=FALSE, eval=TRUE, warning=FALSE, results=FALSE, message=FALSE>>=
 library(knitr)
+
+# for installation see: https://github.com/vqv/ggbiplot
+library(ggbiplot)
+library(datasets)
+library(pastecs)
+library(ggcorrplot)
+library(cluster)
+library(MASS)
+library(ggplot2)
+library(ggpubr)
+library(e1071)
+library(plot3D)
 opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, fig.height=4)
 @
 
@@ -39,6 +51,222 @@ opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Wyniki}
 
+\section{Analiza składowych głównych (Principal Component Analysis (PCA))}
+\subsection{Krótki opis zagadnienia}
+
+Celem tego ćwiczenia będzie przede wszystkim zaznajomienie się z algorytmem PCA
+oraz ocena jego przydatności. Sprawdzimy jakie możliwości redukcji wymiaru dostarcza
+i jak wiele informacji jesteśmy w stanie, dzięki niemu, zachować po przeksztalceniu danych
+do mniejszych wymiarów.
+
+\subsection{Opis eksperymentów/analiz}
+
+Posłużymy się zbiorem {\verb+state.x77+} z pakietu {\verb+datasets+}. Dane te zawierają podstawowe informacje
+o każdym ze stanów. Po przekształceniu danych przy pomocy PCA, przeanalizujemy je w nowej postaci.
+Na początku sprawdzimy jak wiele całkowitej wariancji wyjaśniają poszczególne główne składowe,
+a następnie przeanalizujemy wizualnie dane w nowej postaci. Poza tym, posługując się wektorami ładunków,
+dwuwykresem oraz macierzą korelacji postaramy się zdobyć więcej informacji o zależnościach między zmiennymi.
+
+\subsection{Wyniki}
+<<pca_inicjalizacja, echo=FALSE, message=FALSE>>=
+
+dane <- as.data.frame(state.x77)
+@
+
+<<pca_przykladowe_dane, echo=FALSE>>=
+kable(head(dane), caption="Przykładowe dane", format="latex")
+@
+<<pca_wstep_widok, eval=FALSE>>=
+head(dane)
+ggplot(stack(dane), aes(x=ind, y=values)) + geom_boxplot()
+@
+
+<<pca_boxplot, echo=FALSE, fig.cap="Wykresy pudełkowe zmienności poszczególnych zmiennych ze zbiory danych.">>=
+ggplot(stack(dane), aes(x=ind, y=values)) + geom_boxplot() + labs(y="Wartości", x="Zmienne")
+@
+
+W tabeli \ref{tab:pca_przykladowe_dane} widzimy przykładowe dane. Na podstawie wykresu \ref{fig:pca_boxplot} możemy
+stwierdzić, że przed zastosowaniem PCA, będziemy musieli dokonać standaryzacji danych, ponieważ zmienna
+{\verb+Area+} dominuje wariancję wszystkich zmiennych.
+
+Dlatego też standaryzujemy dane i wyznaczamy składowe główne.
+<<pca_pca>>=
+dane.pca <- prcomp(dane, retx=T, center=T, scale.=T)
+@
+
+Teraz możemy zbadać rozrzut składowych głównych.
+
+<<pca_pc_boxplot, fig.cap="Analiza rozproszenia składowych głównych.">>=
+pc <- data.frame(dane.pca$x)
+ggplot(stack(pc), aes(x=ind, y=values)) + geom_boxplot() +
+  labs(x="Składowe główne", y="Wartości")
+@
+
+Korzystając z wykresu \ref{fig:pca_pc_boxplot}, możemy zauważyć, że
+dla zmiennej PC1 rozstęp międzykwartylowy ma największą wartość.
+
+Dla pierwszych czterech głównych składowych, przeanalizujemy wektory ładunków.
+<<pca_ladunki_widok, eval=FALSE>>=
+dane.pca$rotation[,1:4]
+@
+<<pca_ladunki, echo=FALSE>>=
+kable(dane.pca$rotation[,1:4], caption="Wektory ładunków dla składowych głównych PC1, PC2, PC3, PC4.", format="latex")
+@
+
+W tabeli \ref{tab:pca_ladunki} możemy zobaczyć, że:
+\begin{itemize}
+  \item{
+  I wektor ładunków przypisuje w przybliżeniu jednakową wagę zmiennym:
+  {\verb+Illiteracy+}, {\verb+Life Exp+}, {\verb+Murder+} oraz {\verb+HS Grad+},
+  zatem PC1 można interpretować
+  jako wskaźnik poziomu edukacji oraz długości życia i popełnionych morderstw.
+  }
+  \item{
+  II wektor ładunków przypisuje największe wagi dla zmiennych 
+  {\verb+Area+}, {\verb+Income+}, {\verb+Population+}, czyli PC2 można uznać za wskaźnik zaludnienia 
+  oraz wysokości zarobków na danym obszarze.
+  }
+  \item{
+  III wektor ładunków przypisuje największą wagę zmiennej {\verb+Population+} oraz {\verb+Area+},
+  zatem opisuje poziom zaludnienia.
+  }
+  \item{
+  IV wektor ładunków przypisuje największą wagę zmiennej {\verb+Frost+}, zatem wskazuje
+  na częstość występowania mrozów w danym stanie
+  }
+\end{itemize}
+
+Kiedy już mamy wstępne informacje, możemy przeanalizować, jaki procent wyjaśnionej wariancji odpowiada
+poszczególnym składowym głównym.
+<<pca_zmiennosc_widok, eval=FALSE>>=
+summary(dane.pca)
+wariancja <- (dane.pca$sdev ^2)/sum(dane.pca$sdev^2)
+kum.wariancja <- cumsum(wariancja)
+df_zmiennosc <- data.frame(wariancja, kum.wariancja, names(pc))
+
+ggplot(df_zmiennosc, aes(x=names.pc., y=wariancja)) +
+  geom_bar(stat='identity')
+ggplot(df_zmiennosc, aes(x=names.pc., y=kum.wariancja)) +
+  geom_bar(stat='identity')
+@
+
+<<pca_zmiennosc, echo=FALSE>>=
+pca.podsumowanie <- data.frame(summary(dane.pca)$importance)
+row.names(pca.podsumowanie) <- c(
+  "Odchylenie standardowe", "Część całkowitej wariancji", "Skumulowana część całkowitej wariancji"
+)
+kable(pca.podsumowanie, format="latex", digits = 2, caption="Udział głównych składowych w całkowitej wariancji.")
+@
+
+<<pca_zmiennosc_wykres, echo=FALSE, fig.cap="Procent zmienności oraz kumulatywnej zmienności dla poszczególnych składowych.", fig.width=6>>=
+wariancja <- (dane.pca$sdev ^2)/sum(dane.pca$sdev^2)
+kum.wariancja <- cumsum(wariancja)
+df_zmiennosc <- data.frame(wariancja, kum.wariancja, names(pc))
+
+# udział wyjaśnionej wariancji: scree plot
+ggarrange(
+ggplot(df_zmiennosc, aes(x=names.pc., y=wariancja)) + 
+  labs(x="Składowe główne", y="Wariancja (%)") +
+  ylim(0, 1) +
+  geom_bar(stat='identity'),
+ggplot(df_zmiennosc, aes(x=names.pc., y=kum.wariancja)) + 
+  labs(x="Składowe główne", y="Kumulatywna wariancja (%)") +
+  geom_bar(stat='identity') +
+  geom_hline(yintercept = c(0.8, 0.9), color="red") +
+  scale_y_continuous(breaks=c(0.00, 0.25, 0.50, 0.75, 0.80, 0.90, 1.00),
+                     labels=c("0.00", "0.25", "0.50", "0.75", "0.80", "0.90", "1.00"))
+)
+@
+
+
+W tabeli \ref{tab:pca_zmiennosc} oraz na wykresie \ref{fig:pca_zmiennosc_wykres} widzimy jaki procent
+całkowitej zmienności odpowiada poszczególnym składowym. Ponadto widzimy, że do wyjaśnienia ponad 80\% wariancji
+wystarczą cztery pierwsze główne składowe, a pierwsze pięć składowych wyjaśnia ponad 90\% całkowitej wariancji.
+
+Teraz sprawdzimy, jak dobrze działa PCA poprzez wizualizację danych, czyli dla pierwszych trzech składowych głównych.
+<<pca_wykres_2d_widok, eval=FALSE>>=
+dane.PCA <- data.frame(dane.pca$x)
+ggplot(dane.PCA, aes(x=PC1, y=PC2, col=state.region, label=state.abb)) +
+  geom_text()
+@
+
+<<pca_wykres_2d, echo=FALSE, fig.cap="Wykres rozrzutu dwóch pierwszych składowych głównych.">>=
+dane.PCA <- data.frame(dane.pca$x)
+ggplot(dane.PCA, aes(x=PC1, y=PC2, col=state.region, label=state.abb)) + geom_text() +
+  labs(col="Region")
+@
+
+<<pca_3d_pokaz, eval=FALSE>>=
+attach(dane.PCA)
+points3D(PC1, PC2, PC3)
+@
+
+
+<<pca_3d, echo=FALSE, fig.cap="Wykres rozrzutu trzech pierwszych składowych głównych.">>=
+scatter3D(dane.PCA$PC1, dane.PCA$PC2, dane.PCA$PC3, colvar=as.integer(state.region), col=rainbow(4), bty="g",
+          colkey=list(
+            at=c(1, 2, 3, 4), labels=c("Northeast", "South", "North Central", "West"),
+            side=1
+          ), theta=120
+)
+@
+
+Na podstawie wykresów \ref{fig:pca_wykres_2d} i \ref{fig:pca_3d}, możemy powiedzieć, że wśród danych poza
+wartościami odstającymi od reszty(przede wszystkim Alaska, ale też California, Texas, Nowy York i Florida),
+możemy wyszczególnić dwie grupy. Mniejsza z nich, to dość jednolita grupa, która składa się z
+większości południowych stanów. Reszta stanów zdaje się układać w dość zróżnicowaną grupę.
+
+Widzimy również, że po przekształceniu otrzymaliśmy kilka stanów odstających od pozostałych.
+Przyczyny odseparowania Alaski można szukać mięzdy innymi w nieporównywalnie dużej powierzchni tego stanu.
+
+Zbadamy dokładniej przedstawienie zmiennych w dwuwymiarowej przestrzeni.
+
+<<pca_biplot_widok, eval=FALSE>>=
+ggbiplot(dane.pca, groups=state.region, labels=state.abb)
+@
+<<pca_biplot, echo=FALSE, fig.cap="Dwuwykres dla zbioru danych po przekształceniu PCA.">>=
+ggbiplot(dane.pca, scale=0, groups=state.region, labels.size=3, labels=state.abb) +
+  labs(x="PC1", y="PC2", col="Region")
+@
+
+Istotnie, korzystając z wykresu \ref{fig:pca_biplot}, widzimy, że wektor reprezentujący wzrost zmiennej
+{\verb+Area+} jest skierowany w stronę Alaski.
+
+Teraz postaramy się zbadać korelację pomiędzy zmiennymi na podstawie dwuwykresu oraz macierzy korelacji.
+
+<<pca_corr_matrix_widok, eval=FALSE>>=
+ggcorrplot(cor(dane))
+@
+<<pca_corr_matrix, echo=FALSE, fig.cap="Macierz korelacji">>=
+ggcorrplot(cor(dane), colors=c("steelblue","white","darkred"), lab=T)
+@
+
+Na dwuwykresie (Rys. \ref{fig:pca_biplot}),
+możemy zauważyć, że wskaźnik morderstw może być skorelowany z analfabetyzmem.
+Ponadto, co wydaje się być dość intuicyjne, wskaźnik morderstw wygląda na ujemnie skorelowany
+z oczekiwaną długością życia. Ponadto, z wykresu wynika, że wskaźnik mroźnych dni w ciągu roku jest
+skorelowany z oczekiwaną długością życia i negatywnie skorelowany ze wskaźnikiem morderstw.
+Widać również, że populacja jest skorelowana z powierzchnią stanu, a procent wyższego wykształcenia
+jest skorelowany z przychodem.
+
+Korzystając z macierzy korelacji (Rys. \ref{fig:pca_corr_matrix}),
+możemy zauważyć, że większość z naszych przewidywań jest słuszna.
+Należy jednak zaznaczyć, że współczynnik korelacji między ilością mroźnych dni, a oczekiwaną długością życia,
+jest niższy, niż moglibyśmy tego oczekiwać, po spojrzeniu na dwuwykres. Ponadto, widzimy, że wbrew dwuwykresowi,
+współczynnik korelacji pomiędzy powierzchnią stanu, a populacją jest bardzo bliski 0.
+
+\subsection{Podsumowanie}
+
+Widzimy, że algorytm PCA pozwolił na przystępne i łatwe w wizaualizacji przedstawienie zbioru danych.
+Ponadto, zobaczyliśmy, że już trzy pierwsze składowe główne wyjaśniają 79\% całkowitej wariancji.
+Należy pamiętać, że do przeprowadzenie PCA, konieczna było standaryzacja danych.
+Ciekawym wynikiem jest to, że w danych został odzwierciedlony podział północ-południe.
+Warto również zapamiętać, że podczas analizy otrzymaliśmy kilka charakterystycznych stanów, które reprezentują
+szczególne cechy (przede wszystkim Alaska).
+
+Dlatego też, możemy ocenić pozytywnie przydatność algorytmu PCA do analizy danych.
+Znaczna redukcja wymiaru pozwoliła jednocześnie zachować dość dużo informacji o danych.
+
 \section{Skalowanie wielowymiarowe (Multidimensional Scaling (MDS))}
 \subsection{Krótki opis zagadnienia}
 W tej części będziemy się zajmowali MDS, czyli skalowaniem wielowymiarowym.
@@ -53,13 +281,6 @@ W tym celu zbadamy, jak zmieniają się wartości funkcji {\verb+STRESS+} oraz d
 \subsection{Wyniki}
 
 <<mds_inicjalizacja, echo=FALSE, message=FALSE>>=
-library(cluster)
-library(MASS)
-library(ggplot2)
-library(ggpubr)
-library(rgl)
-library(e1071)
-library(plot3D)
 
 # Kaggle titanic dataset from https://www.kaggle.com/heptapod/titanic
 dane <- read.csv("titanic.csv")
@@ -137,9 +358,10 @@ badanie.MDS <- function (k.max, macierz.odmiennosci) {
     STRESS[k] <- mds$stress
 
     odleglosci.k <- as.matrix(dist(mds$points, method="euclidean"))
+    indeksy <- sample(1:length(c(macierz.odmiennosci)), size=10000)
     wykresy[[k]] <- ggplot() +
       geom_point(
-        aes(x=c(macierz.odmiennosci), y=c(odleglosci.k)),
+        aes(x=c(macierz.odmiennosci)[indeksy], y=c(odleglosci.k)[indeksy]),
         alpha=0.05
       ) +
       labs(
@@ -266,9 +488,6 @@ początkowych hipotez, które mogłyby posłużyć do dalszej analizy.
 
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{thebibliography}{9}
-
-\end{thebibliography}
 
 
 \end{document}
