@@ -5,6 +5,11 @@
 library(datasets)
 library(ggplot2)
 library(pastecs)
+library(plotly)
+library(ggcorrplot)
+
+# for installation see: https://github.com/vqv/ggbiplot
+library(ggbiplot)
 
 dane <- as.data.frame(state.x77)
 
@@ -80,3 +85,56 @@ ggplot(df_zmienność, aes(x=names.pc., y=kum.wariancja)) +
 # PC1, PC2 oraz PC3
 # Do wyjaśnienia 90% zmienności danych potrzebujemy już 4 składowych głównych:'
 # PC1, PC2, PC3 oraz PC4
+
+# (e)
+# Wizualizacja 2D
+
+dane.PCA = data.frame(dane.pca$x, state.abb, state.region, state.division)
+
+# Z podziałem na regiony:
+ggplot(dane.PCA, aes(x=PC1, y=PC2, col=state.region)) + geom_point()
+
+# Z podziałem na dywizje:
+ggplot(dane.PCA, aes(x=PC1, y=PC2, col=state.division)) + geom_point()
+
+# Wizualizacja 3D
+
+plot_ly(
+  dane.PCA, x=~PC1, y=~PC2, z=~PC3, color=~state.region,
+  text=~state.abb, type="scatter3d", textfont=list(size=12)
+)
+
+plot_ly(
+  dane.PCA, x=~PC1, y=~PC2, z=~PC3, color=~state.division,
+  text=~state.abb, type="scatter3d", textfont=list(size=12)
+)
+
+# Na wykresach rozrzutu możemy zauważyć pewne naturalne grupy.
+# Widać, że stany z południowego regionu są dość dobrze odseparowane od reszty.
+# Poza południowymi stanami, pozostałe dywizje znajdują się dość blisko siebie
+# i trudno byłoby je odseparować.
+# Widać, że charakterystycznym stanem jest Alaska[AK], która jest zdecydowanie odseparowana od reszty zbioru.
+# Na trójwymiarowym wykresie rezrzutu widać również, że wyróżniającymi się stanami
+# są California [CA], Nowy York [NY], Texas [TX] oraz Floryda [FL]
+
+
+# (f)
+
+ggbiplot(dane.pca, scale=0, groups=state.region, labels.size=20, ellipse=T)
+
+# Na dwuwykresie, możemy zauważyć, że wskaźnik morderstw może być skorelowany z analfabetyzmem.
+# Ponadto, co wydaje się być dość intuicyjne, wskaźnik morderstw wygląda na ujemnie skorelowany
+# z oczekiwaną długością życia. Ponadto, z wykresu wynika, że wskaźnik mroźnych dni w ciągu roku jest
+# skorelowany z oczekiwaną długością życia i negatywnie skorelowany ze wskaźnikiem morderstw.
+# Widać również, że populacja jest skorelowana z powierzchnią stanu, a procent wyższego wykształcenia
+# jest skorelowany z przychodem.
+
+ggcorrplot(cor(dane), colors=c("steelblue","white","darkred"), lab=T)
+
+# Korzystając z macierzy korelacji, możemy zauważyć, że większość z naszych przewidywań jest słuszna.
+# Należy jednak zaznaczyć, że współczynnik korelacji między ilością mroźnych dni, a oczekiwaną długością życia,
+# jest niższy, niż moglibyśmy tego oczekiwać, po spojrzeniu na dwuwykres. Ponadto, widzimy, że wbrew dwuwykresowi,
+# współczynnik korelacji pomiędzy powierzchnią stanu, a populacją jest bardzo bliski 0.
+
+
+
