@@ -2,8 +2,9 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % dodatkowe pakiety LaTeX'a
-\usepackage[OT4]{polski}
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[MeX]{polski}
 \usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
 \usepackage{graphicx}
 \usepackage{float}
@@ -27,22 +28,61 @@ opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, 
 \maketitle
 \tableofcontents
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Dyskretyzacja cech ciągłych.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Krótki opis zagadnienia}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Opis eksperymentów/analiz}
+\subsection{Krótki opis zagadnienia}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Wyniki}
+\subsection{Opis eksperymentów/analiz}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Podsumowanie}
+\subsection{Wyniki}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Podsumowanie}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Analiza składowych głównych.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Krótki opis zagadnienia}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Opis eksperymentów/analiz}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Wyniki}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Podsumowanie}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Skalowanie wielowymiarowe.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Krótki opis zagadnienia}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Opis eksperymentów/analiz}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Wyniki}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Podsumowanie}
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{thebibliography}{9}
