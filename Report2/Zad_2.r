@@ -141,6 +141,9 @@ ggcorrplot(cor(dane), colors=c("steelblue","white","darkred"), lab=T)
 # Udało się nam dość dobrze przedstawić wielowymiarowe dane, dotyczące stanów, przy pomocy 2 głównych składowych.
 # Dzięki redukcji wymiaru, udało nam się zaobserwować różnice między niektórymi grupami stanów.
 # Widzimy, że Alaska odstaje.
+# Odstaje prawdopodobnie dlatego, że 2. główna składowa jest skorelowana z powierzchnią stanu, dlatego
+# Alaska jako stan o nieporównywalnie dużej powierzchnii oraz prawdopodobnie dość dużych zarobkach per capita
+# odstaje od zbioru.
 # 2 składowe pozwalają na zadowalającą reperezentację danych. Przy 3 możemy wyjaśnić aż 80% wariancji
 # i dość dobrze zwizualizować wyniki na trójwymiarowym wykresie. Istotnym krokiem była standaryzacja,
 # gdybyśmy jej nie wykonali, to mimo pozornego wyjaśnienia wariancji przez pierwszą składową, byłaby
