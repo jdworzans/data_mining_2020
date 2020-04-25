@@ -56,7 +56,7 @@ matchClasses(tab.d.fixed)
 #najlepiej sprawdzają się:
 #dyskretyzacja według równej szerokości; 
 #dyskretyzacja oparta na algorytmie k-means;
-#dyskretyzacja z przedziałami wyznaczonymi zdalnie;
+#dyskretyzacja z przedziałami wyznaczonymi ręcznie;
 #zgodność: 96%
 #najgorszy wynik otrzymujemy dla dyskretyzacji według równej częstości
 #zgodność: 94.67%
