@@ -89,7 +89,7 @@ ggplot(df_zmienność, aes(x=names.pc., y=kum.wariancja)) +
 # (e)
 # Wizualizacja 2D
 
-dane.PCA = data.frame(dane.pca$x, state.abb, state.region, state.division)
+dane.PCA <- data.frame(dane.pca$x, state.abb, state.region, state.division)
 
 # Z podziałem na regiony:
 ggplot(dane.PCA, aes(x=PC1, y=PC2, col=state.region)) + geom_point()
