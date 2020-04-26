@@ -1,0 +1,274 @@
+\documentclass[12pt, a4paper]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% dodatkowe pakiety LaTeX'a
+\usepackage[OT4]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ustawienia globalne
+<<ustawienia_globalne, echo=FALSE, eval=TRUE, warning=FALSE, results=FALSE>>=
+library(knitr)
+opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, fig.height=4)
+@
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% strona tytulowa
+\title{Raport nr 2}
+\author{Emilia Kowal [249716], Jakub Dworzański [249703]}
+\maketitle
+\tableofcontents
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Krótki opis zagadnienia}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Opis eksperymentów/analiz}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Wyniki}
+
+\section{Skalowanie wielowymiarowe (Multidimensional Scaling (MDS))}
+\subsection{Krótki opis zagadnienia}
+W tej części będziemy się zajmowali MDS, czyli skalowaniem wielowymiarowym.
+Zdecydowaliśmy się na zbadanie skalowania niemetrycznego, które jest wariantem MDS.
+
+
+\subsection{Opis eksperymentów/analiz}
+
+Będziemy sprawdzali jakość odwzorowania MDS.
+W tym celu zbadamy, jak zmieniają się wartości funkcji {\verb+STRESS+} oraz diagramy Shepparda dla różnych wymiarów docelowej przestrzeni. Do badań wykorzystamy zbiór danych, dotyczący pasażerów Titanica.
+
+\subsection{Wyniki}
+
+<<mds_inicjalizacja, echo=FALSE, message=FALSE>>=
+library(cluster)
+library(MASS)
+library(ggplot2)
+library(ggpubr)
+library(rgl)
+library(e1071)
+library(plot3D)
+
+# Kaggle titanic dataset from https://www.kaggle.com/heptapod/titanic
+dane <- read.csv("titanic.csv")
+titanic.dane <- subset(dane, select=c(Pclass,Sex,Age,sibsp,Parch,Fare,Embarked))
+titanic.dane$Survived <- factor(dane$X2urvived, levels=c(0, 1), labels=c("N", "Y"))
+
+titanic.dane$Pclass <- as.ordered(titanic.dane$Pclass)
+titanic.dane$Sex <- factor(titanic.dane$Sex, levels=c(0, 1), labels=c("M","F"))
+titanic.dane$Embarked <- as.factor(titanic.dane$Embarked)
+titanic.dane <- na.omit(titanic.dane)
+
+titanic.dane.mds <- subset(titanic.dane, select=-c(Survived))
+
+unikatowe <- !duplicated(titanic.dane.mds)
+titanic.dane <- titanic.dane[unikatowe,][1:150,]
+titanic.dane.mds <- titanic.dane.mds[unikatowe,][1:150,] # Tu można zwiększyć / usunąć ostatnie indeksy
+@
+
+<<mds_przykładowe_dane, echo=FALSE>>=
+kable(head(titanic.dane), caption="Przykładowe dane", format="latex")
+@
+<<eval=FALSE>>=
+head(titanic.dane)
+@
+
+W tabeli \ref{tab:mds_przykładowe_dane}, przedstawiającej przykładowe dane, możemy zobaczyć, że wśród zmiennych występują nie tylko cechy numeryczne, takie jak wiek({\verb+Age+}),
+ale również cechy kategoryczne, w tym:
+\begin{itemize}
+  \item płeć({\verb+Sex+}), jako zmienna binarna,
+  \item port({\verb+Fare+}), w którym pasażer wszedł na pokład statku, jako zmienna nominalna,
+  \item klasę({\verb+Pclass+}), którą podróżował pasażer, jako zmienna uporządkowana.
+\end{itemize}
+Ponadto w danych istnieje zmienna grupująca {\verb+Survived+}, która informuje o tym, czy pasażer przeżył katastrofę.
+
+Do dalszej analizy będziemy wykorzystywać dane bez zmiennej grupującej, aby później na jej podstawie ocenić jakość odwzorowania.
+<<eval=FALSE>>=
+titanic.dane.mds <- subset(titanic.dane, select=-c(Survived))
+@
+
+W kolejnych krokach, aby dokonać skalowania, będziemy potrzebować odmienności między wektorami cech.
+<<mds_macierz_odmienności>>=
+macierz.odmiennosci <- as.matrix(daisy(
+  titanic.dane.mds,
+  stand=TRUE
+))
+@
+
+Dysponując macierzą odmienności, możemy zbadać jak zmieniają się diagramy Shepparda oraz wartość funkcji kryterialnej {\verb+STRESS+}, wraz ze zmianą wymiaru docelowej przestrzeni.
+Dlatego teraz wyznaczamy {\verb+STRESS+} oraz diagram Shepparda dla k=1,2,\ldots,7.
+
+<<mds_funkcja_do_badań_do_pokazania, eval=FALSE>>=
+badanie.MDS <- function (k.max, macierz.odmiennosci) {
+  STRESS <- numeric(k.max)
+  wykresy <- list()
+  for (k in 1:k.max) {
+    mds <- isoMDS(macierz.odmiennosci, k=k)
+    STRESS[k] <- mds$stress
+    odleglosci.k <- as.matrix(dist(mds$points, method="euclidean"))
+    wykresy[[k]] <- ggplot() + geom_point(aes(x=c(macierz.odmiennosci), y=c(odleglosci.k)))
+  }
+  return(list(wykresy=wykresy, STRESS=STRESS))
+}
+k.max <- length(titanic.dane.mds)
+wyniki <- badanie.MDS(k.max, macierz.odmiennosci)
+@
+
+<<mds_funkcja_do_badań, results=FALSE, echo=FALSE>>=
+badanie.MDS <- function (k.max, macierz.odmiennosci) {
+
+  STRESS <- numeric(k.max)
+  wykresy <- list()
+  
+  for (k in 1:k.max) {
+    mds <- isoMDS(macierz.odmiennosci, k=k)
+    STRESS[k] <- mds$stress
+
+    odleglosci.k <- as.matrix(dist(mds$points, method="euclidean"))
+    wykresy[[k]] <- ggplot() +
+      geom_point(
+        aes(x=c(macierz.odmiennosci), y=c(odleglosci.k)),
+        alpha=0.05
+      ) +
+      labs(
+        title=paste("k=", k, sep=""),
+        x="orginalne odległości",
+        y="nowe odległości"
+      )
+  }
+  return(
+    list(wykresy=wykresy, STRESS=STRESS)
+  )
+}
+k.max <- length(titanic.dane.mds)
+wyniki <- badanie.MDS(k.max, macierz.odmiennosci)
+@
+
+<<mds_wykres_STRESS_do_pokazania, eval=FALSE>>=
+ggplot() + geom_line(aes(x=1:k.max, y=wyniki$STRESS))
+@
+
+<<mds_wykres_STRESS, fig.cap="Zależność funkcji kryterialnej STRESS od docelowego wymiaru", echo=FALSE>>=
+ggplot() +
+  geom_line(aes(x=1:k.max, y=wyniki$STRESS), linetype="dashed") +
+  geom_point(aes(x=1:k.max, y=wyniki$STRESS), size=2.5) +
+  labs(x="Docelowy wymiar", y="STRESS")
+@
+
+Na wykresie \ref{fig:mds_wykres_STRESS} widzimy, że funkcja {\verb+STRESS+} maleje z każdym zwiększeniem wymiaru docelowego. Na jego podstawie, możemy również stwierdzić, że dla w przestrzeni dwuwymiarowej przyjmuje ona stosunkowo duże wartości, co wskazuje na potencjalnie dużą utratę informacji. Widzimy również, że także w przestrzeni trójwymiarowej występuje utrata informacji, jednak jest ona znacznie mniejsza, niż dla $k=2$. Stąd, możemy przypuszczać, że dzięki wykorzystaniu metod wizualizacji 3D, będziemy mogli poznać strukturę zbioru danych znacznie lepiej, niż na standardowym, dwuwymiarowym wykresie.
+
+<<mds_diagramy_shepparda, fig.cap="Diagramy Shepparda", fig.height=8>>=
+wykresy <- wyniki$wykresy
+ggarrange(plotlist=wykresy[c(2, 4, 6)], nrow=3)
+@
+
+Diagramy Shepparda, które przedstawiają porównanie odległości między orginalną, a docelową przestrzeną, nie przedstawiają istotnych zmian między docelowymi wymiarami. Dlatego też, korzystając przede wszystkim z wykresu funkcji {\verb+STRESS+}, jako docelowy wymiar przestrzeni, wybrałbym 4, ponieważ wykres zaczyna się w tym miejscu wypłaszczać, a jednocześnie pozwala on na wizualne badanie elementów zbioru poprzez wprowadzenie koloru lub kształtu, reprezentującego czwartą współrzędną
+w tej przestrzeni.
+
+Teraz spróbujemy ocenić jakość odwzorowań, korzystając z dodatkowej informacji, jaką jest zmienna grupująca {\verb+Survived+}.
+
+<<mds_wizualizacja_2d_do_pokazania, eval=FALSE>>=
+mds.k2 <- isoMDS(macierz.odmiennosci, k=2)
+reprezentacja.mds.k2 <- data.frame(mds.k2$points)
+
+ggplot(reprezentacja.mds.k2, aes(x=X1, y=X2)) +
+  geom_point(aes(col=...))
+@
+
+
+<<mds_wizualizacja_2d, fig.cap="Wykres po odwzorowaniu MDS dla $k=2$ z podzialem na grupy", results=FALSE, echo=FALSE>>=
+mds.k2 <- isoMDS(macierz.odmiennosci, k=2)
+reprezentacja.mds.k2 <- data.frame(mds.k2$points)
+ggarrange(
+  ggarrange(
+    ggplot(reprezentacja.mds.k2, aes(x=X1, y=X2)) +
+    geom_point(aes(col=titanic.dane$Sex)) +
+    labs(col="Płeć"),
+    ggplot(reprezentacja.mds.k2, aes(x=X1, y=X2)) +
+    geom_point(aes(col=titanic.dane$Pclass)) +
+    labs(col="Klasa")
+  ),
+  ggplot(reprezentacja.mds.k2, aes(x=X1, y=X2)) +
+    geom_point(aes(col=titanic.dane$Survived)) +
+    labs(col="Przeżycie") +
+    scale_color_manual(values=c("red", "blue")),
+  nrow=2
+)
+@
+
+Widzimy, że po odwzorowaniu można wyróżnić dwie grupy, które rodzielają dane ze względu na płeć pasażera.
+Grupy te nie rozdzielają jednak danych ze względu na informację dotycząca tego, czy pasażer przeżył.
+Możemy jednak zauważyć, że istotnie wśród kobiet odsetek przeżycia jest dużo wyższy.
+Stąd, po sprawdzeniu, jak prezentuje się ich rozkład:
+
+<<mds_plec_przezyce_widok, eval=FALSE>>=
+table(titanic.dane$Sex, titanic.dane$Survived)
+@
+<<mds_plec_przezycie, echo=FALSE>>=
+kable(table(titanic.dane$Sex, titanic.dane$Survived), caption="Tabela kontygencji dla podziału płeć-przeżycie", format="latex")
+@
+W tabeli \ref{tab:mds_plec_przezycie} widzimy, że faktycznie, przypisując tym dwóm grupom odpowiednią klasę grupującą, otrzymalibyśmy skuteczność na poziomie $71.59\%$. Stąd możemy powiedzieć, że dane po MDS wciąż zachowują dość dużo informacji.
+
+Ponadto, na wykresie \ref{tab:mds_plec_przezycie} widzimy, że w danych pozostał dość dobry podział ze względu
+na klasę, którą podróżował pasażer.
+
+Teraz, możemy sprawdzić, czy przekształcenie MDS do przestrzeni trojwymiarowej będzie zawierało więcej informacji.
+<<mds_3d, results=FALSE>>=
+mds.k3 <- isoMDS(macierz.odmiennosci, k=3)
+attach(data.frame(mds.k3$points))
+@
+
+<<mds_3d_wizualizacja_do_pokazania, eval=FALSE>>=
+points3D(X1,X2,X3,...)
+@
+
+<<mds_3d_port, fig.cap="Wykres po odwzorowaniu MDS dla $k=3$ z podzialem na początek podróży", echo=FALSE>>=
+points3D(X1,X2,X3,colvar=as.numeric(titanic.dane$Embarked),labels=c("X1", "X2", "X3"),bty="g",
+         col=c("#1B9E77", "#D95F02", "#7570B3"), colkey=list(at=c(1,2,3), labels=c("1", "2", "3")))
+@
+
+<<mds_3d_przezycie, fig.cap="Wykres po odwzorowaniu MDS dla $k=3$ z podziałem na przeżycie", echo=FALSE>>=
+points3D(X1,X2,X3, bty="g",
+         colvar=as.numeric(titanic.dane$Survived),labels=c("X1", "X2", "X3"),
+         col=c("#1B9E77", "#D95F02"), colkey=list(at=c(1, 2), labels=c("N", "Y"))
+)
+@
+
+Na wykresie \ref{fig:mds_3d_port} widzimy, że dodatkowy wymiar dostarcza nam informacji między innymi na temat
+portu, w którym pasażer wsiadł na statek.
+
+Nie jest to jednak wystarczające do separacji pasażerów, którzy przeżyli, od tych, którzy nie przeżyli
+(Rys. \ref{fig:mds_3d_przezycie}).
+Mimo tego, redukcja wymiaru zdecydowanie pomogła w wizualizacji i w lepszym zrozumieniu danych.
+
+\subsection{Podsumowanie}
+
+Na podstawie przeprowadzonego eksperymentu, możemy stwierdzić, że skalowanie wielowymiarowe
+może być niezwykle pomocne podczas analizy danych. Mimo tego, że nie rozwiązało ono bezpośrednio
+głównego problemu, który wiąże się z tym zbiorem danych, czyli predykcji przeżycia pasażerów, to
+pozwoliło na przeanalizowanie danych w 2- i 3- wymiarowych przestrzeniach, co pozwoliło na sformułowanie
+początkowych hipotez, które mogłyby posłużyć do dalszej analizy.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Podsumowanie}
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{thebibliography}{9}
+
+\end{thebibliography}
+
+
+\end{document}
