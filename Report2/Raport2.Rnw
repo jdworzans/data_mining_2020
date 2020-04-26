@@ -26,6 +26,8 @@ library(ggplot2)
 library(ggpubr)
 library(e1071)
 library(plot3D)
+library(xtable)
+library(arules)
 opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, fig.height=4)
 @
 
@@ -40,16 +42,324 @@ opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, 
 \tableofcontents
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Krótki opis zagadnienia}
-
+\section{Dyskretyzacja cech ciągłych.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Opis eksperymentów/analiz}
+\subsection{Krótki opis zagadnienia.}
+
+W tej sekcji przyjrzymy się działaniu różnych metod dyskretyzacji nienadzorowanej wykorzystując w tym celu zbiór danych \textit{iris} z pakietu \textit{datasets}, który zawiera zestaw pomiarów kwiatów oraz informację o gatunku irysa. Na podstawie otrzymanych wyników postaramy się przeprowadzić analizę skuteczności algorytmów.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Wyniki}
+\subsection{Opis eksperymentów/analiz}
+Przedsięwzięcie rozpoczynamy od wyboru cech o najgorszych oraz najlepszych zdolnościach dyskryminacyjnych. Dla wybranych zmiennych stosujemy algorytmy:
+
+\begin{itemize}
+\item dyskretyzacja według równej szerokości przedziałów,
+\item dyskretyzacja według równej częstości,
+\item dyskretyzacja oparta na algorytmie k-means,
+\item dyskretyzacja z przedziałami wyznaczonymi ręcznie.
+\end{itemize}
+
+Następnie dokonujemy porównania wyników z rzeczywistymi etykietami klas. Zbadamy również wpływ obserwacji odstających na powyższe algorytmy.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Wyniki}
+
+\subsubsection{Przygotowanie danych. Podstawowe informacje o danych.}
+
+<<read_data>>=
+data(iris)
+attach(iris)
+@
+
+Zbiór danych zawiera 150 obserwacji dotyczących 3 gatunków irysa: setosa, versicolor oraz virginica. Po wczytaniu danych do przestrzeni roboczej sprawdzamy poprawność typów zmiennych.
+<<data_info, echo=FALSE>>=
+kable(
+  data.frame(
+    zmienna=names(iris),
+    typ=sapply(iris, typeof),
+    pierwsze.wartosci=sapply(iris, function(x) paste0(head(x, n=4), collapse=", "))
+  ), row.names=FALSE, col.names = c("Zmienna", "Typ zmiennej", "Pierwsze wartości"), caption="Opis danych", format="latex"
+)
+@
+Na podstawie tabeli \ref{tab:data_info} widzimy, że wszystkie zmienne zostały wczytane poprawnie. Następnie sprawdzamy, czy w zbiorze znajdują się wartości brakujące.
+
+<<missing_data>>=
+sum(is.na(iris))
+@
+
+Widzimy, że w zbiorze \textit{iris} nie ma wartości brakujących.
+
+\subsubsection{Analiza zdolności dyskryminacyjnych cech.}
+
+W celu identyfikacji cech o najgorszych oraz najlepszych zdolnościach dyskryminacyjnych prezetujemy dane na wykresach pudełkowych i wykresach rozrzutu.
+
+<<petal_len_box, echo=FALSE, fig.cap="Wykres pudełkowy dla zmiennej Petal.Length">>=
+ggplot(iris, aes(x=Species, y=Petal.Length)) +
+  geom_boxplot()
+@
+
+<<petal_width_box, echo=FALSE, fig.cap="Wykres pudełkowy dla zmiennej Petal.Width">>=
+ggplot(iris, aes(x=Species, y=Petal.Width)) +
+  geom_boxplot()
+@
+
+<<petal_len_width, echo=FALSE, fig.cap="Wykres rozrzutu dla zmiennych Petal.Width i Petal.Length">>=
+ggplot(iris, aes(x=Petal.Width, y=Petal.Length, color=Species))+
+  geom_point(size=3)
+@
+
+<<sepal_length_box, echo=FALSE, fig.cap="Wykres pudełkowy dla zmiennej Sepal.Length">>=
+ggplot(iris, aes(x=Species, y=Sepal.Length)) +geom_boxplot()
+@
+
+<<sepal_width_box, echo=FALSE, fig.cap="Wykres pudełkowy dla zmiennej Sepal.Width">>=
+ggplot(iris, aes(x=Species, y=Sepal.Width)) +geom_boxplot()
+@
+
+<<sepal_width_len, echo=FALSE, fig.cap="Wykres rorzutu dla zmiennych Sepal.Width i Sepal.Length">>=
+ggplot(iris, aes(x=Sepal.Width, y=Sepal.Length, color=Species))+
+  geom_point(size=4)
+@
+
+Na podstawie analizy wykresów \ref{fig:petal_len_box}, \ref{fig:petal_width_box} i \ref{fig:petal_len_width} możemy stwierdzić, iż cechy \textit{Petal.Length} oraz \textit{Petal.Width} wykazują najlepsze zdolności dyskryminacyjne, natomiast cechy \textit{Sepal.Length} oraz \textit{Sepal.Width} (wykresy: \ref{fig:sepal_length_box}, \ref{fig:sepal_width_box} i \ref{fig:sepal_width_len}) posiadają najgorsze zdolności dyskryminacyjne. \\
+Algorytmy dyskretyzacji zastosujemy dla zmiennych Petal.Width oraz Sepal.Width.
+
+\subsubsection{Porównanie nienadzorowanych metod dyskretyzacji.}
+
+Dla zmiennej \textit{Petal.Width} otrzymujemy następujące wyniki:
+<<pet_eq_wid_tab, echo=FALSE>>=
+d <- iris[, "Petal.Width"]
+d.disc.eq.width <- discretize(d, method = "interval", breaks=3)
+tab.d.eq.width <- table(d.disc.eq.width, Species)
+kable(
+  as.data.frame.matrix(tab.d.eq.width), caption="Tabela kontyngencji dla dyskretyzacji Petal.Width metodą equal width.", format="latex"
+)
+@
+
+<<pet_fixed_tab, echo=FALSE>>=
+d.disc.fixed <- discretize(d, method="fixed", breaks=c(-Inf, 0.75, 1.65, Inf))
+tab.d.fixed <- table(d.disc.fixed, Species)
+kable(
+  as.data.frame.matrix(tab.d.fixed), caption="Tabela kontyngencji dla dyskretyzacji Petal.Width metodą fixed.", format="latex"
+)
+@
+
+<<pet_kmeans_tab, echo=FALSE>>=
+d.disc.km.clus <- discretize(d, method="cluster", breaks=3)
+tab.d.km.clus <- table(d.disc.km.clus, Species)
+kable(
+  as.data.frame.matrix(tab.d.km.clus), caption="Tabela kontyngencji dla dyskretyzacji Petal.Width metodą k-means.", format="latex"
+)
+@
+
+<<pet_eq_freq_tab, echo=FALSE>>=
+d.disc.eq.freq <- discretize(d, method="frequency", breaks=3)
+tab.d.eq.freq <- table(d.disc.eq.freq, Species)
+kable(
+  as.data.frame.matrix(tab.d.fixed), caption="Tabela kontyngencji dla dyskretyzacji Petal.Width metodą equal frequency.", format="latex"
+)
+@
+
+
+
+\begin{itemize}
+
+\item dla dyskretyzacji według równych przedziałów (tabela: \ref{tab:pet_eq_wid_tab}), według przedziałów zadanych ręcznie (tabela: \ref{tab:pet_fixed_tab}) oraz wykorzystującej algorytm k-means (tabela: \ref{tab:pet_kmeans_tab}) dostajemy wynik o poziomie zgodności 96\%,
+\item dla dyskretyzacji według równych częstości (tabela: \ref{tab:pet_eq_freq_tab}) otrzymujemy najgorszy wynik, współczynnik zgodności wynosi 94.67\%.
+\end{itemize}
+
+Porównujemy, na wykresach rozrzutu, wyniki poszczególnych algorytmów dyskretyzacji dla zmiennej \textit{Petal.Width}.
+
+<<scatter_petal,fig.width=8, fig.height=7, echo=FALSE, message=FALSE, fig.cap="Wyniki dyskretyzacji dla zmiennej Petal.Length">>=
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+y <- runif(length(d))
+df_pet_plot <- cbind(data.frame(d,y), Species)
+
+
+breaks.equal.width <- attributes(d.disc.eq.width)$"discretized:breaks"
+p1 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept = breaks.equal.width) +
+  ggtitle("Equal width.") + 
+  xlab("Petal.Width")
+
+
+breaks.equal.freq <- attributes(d.disc.eq.freq)$"discretized:breaks"
+p2 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept = breaks.equal.freq) +
+  ggtitle("Equal frequency.") + 
+  xlab("Petal.Width")
+
+
+
+breaks.kmeans <- attributes(d.disc.km.clus)$"discretized:breaks"
+p3 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept =breaks.kmeans) +
+  ggtitle("K-means.") + 
+  xlab("Petal.Width")
+
+
+breaks.fixed <- attributes(d.disc.fixed)$"discretized:breaks"
+p4 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept =breaks.fixed) +
+  ggtitle("Fixed.") + 
+  xlab("Petal.Width")
+
+multiplot(p1, p2, p3, p4, cols=2)
+@
+Widzimy na wykresach rozrzutu, że dla zmiennej \textit{Petal.Width} o najlepszych zdolnościach dyskryminacyjnych, przedziały wyznaczone przez zastosowane algorytmy, pozwalają nam z dużym przybliżeniem określić, do której z klas należy dana próba.
+
+Dla zmiennej \textit{Sepal.Width}, o słabych zdolnościach dyskryminacyjnych, otrzymujemy następujące wyniki:
+<<sep_eq_wid_tab, echo=FALSE>>=
+x <- iris[, "Sepal.Width"]
+x.disc.eq.width <- discretize(x, method = "interval", breaks=3)
+tab.x.eq.width <- table(x.disc.eq.width, Species)
+kable(
+  as.data.frame.matrix(tab.x.eq.width), caption="Tabela kontyngencji dla dyskretyzacji Sepal.Width metodą equal width.", format="latex"
+)
+@
+
+<<sep_fixed_tab, echo=FALSE>>=
+x.disc.fixed <- discretize(x, method="fixed", breaks=c(-Inf, 2.75, 3.45, Inf))
+tab.x.fixed <- table(x.disc.fixed, Species)
+kable(
+  as.data.frame.matrix(tab.x.fixed), caption="Tabela kontyngencji dla dyskretyzacji Sepal.Width metodą fixed.", format="latex"
+)
+@
+
+<<sep_kmeans_tab, echo=FALSE>>=
+x.disc.km.clus <- discretize(x, method="cluster", breaks=3)
+tab.x.km.clus <- table(x.disc.km.clus, Species)
+kable(
+  as.data.frame.matrix(tab.x.km.clus), caption="Tabela kontyngencji dla dyskretyzacji Sepal.Width metodą k-means.", format="latex"
+)
+@
+
+<<sep_eq_freq_tab, echo=FALSE>>=
+x.disc.eq.freq <- discretize(x, method="frequency", breaks=3)
+tab.x.eq.freq <- table(x.disc.eq.freq, Species)
+kable(
+  as.data.frame.matrix(tab.x.fixed), caption="Tabela kontyngencji dla dyskretyzacji Sepal.Width metodą equal frequency.", format="latex"
+)
+@
+
+\begin{itemize}
+
+\item dla dyskretyzacji wykorzystującej algorytm k-means (tabela: \ref{tab:sep_kmeans_tab}) dostajemy najwyższy współczynnik zgodności-56\%,
+\item dla dyskretyzacji według równych częstości (tabela: \ref{tab:sep_eq_freq_tab}) otrzymujemy zgodność na poziomie 55.33\%,
+\item  dla dyskretyzacji metodą fixed (tabela: \ref{tab:sep_fixed_tab}) dostajemy zgodność: 52.67\%,
+\item najgorszy wynik obserwujemy dla dyskretyzacji według równych przedziałów (tabela \ref{tab:sep_eq_wid_tab}. Współczynnik zgodności wynosi 50.67\%.
+\end{itemize}
+
+Porównujemy, na wykresach rozrzutu, wyniki poszczególnych algorytmów dyskretyzacji dla zmiennej \textit{Sepal.Width}.
+
+<<scatter_sepal, fig.width=8, fig.height=7, echo=FALSE, fig.cap="Wyniki dyskretyzacji dla zmiennej Sepal.Length">>=
+df_sep_plot <- cbind(data.frame(x,y), Species)
+
+
+breaks.equal.width1 <- attributes(x.disc.eq.width)$"discretized:breaks"
+p5 <- ggplot(df_sep_plot, aes(x=x, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept = breaks.equal.width1) +
+  ggtitle("Equal width.") + 
+  xlab("Sepal.Width")
+
+
+breaks.equal.freq1 <- attributes(x.disc.eq.freq)$"discretized:breaks"
+p6 <- ggplot(df_sep_plot, aes(x=x, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept = breaks.equal.freq1) +
+  ggtitle("Equal frequency.") + 
+  xlab("Sepal.Width")
+
+
+
+breaks.kmeans1 <- attributes(x.disc.km.clus)$"discretized:breaks"
+p7 <- ggplot(df_sep_plot, aes(x=x, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept =breaks.kmeans1) +
+  ggtitle("K-means.") + 
+  xlab("Sepal.Width")
+
+
+breaks.fixed1 <- attributes(x.disc.fixed)$"discretized:breaks"
+p8 <- ggplot(df_sep_plot, aes(x=x, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept =breaks.fixed1) +
+  ggtitle("Fixed.") + 
+  xlab("Sepal.Width")
+
+multiplot(p5, p6, p7, p8, cols=2)
+@
+Również na wykresie rozrzutu dla dyskretyzacji według równych przedziałów można dostrzec, że algorytm, w porównaniu do pozostałych trzech, poradził sobie najgorzej ze zmienną \textit{Sepal.Width}.
+
+\subsubsection{Wpływ wartości odstających na metody dyskretyzacji.}
+
+Analizę zmiennej Petal.Width powtarzamy, zastępując wartość najmniejszą oraz największą cechy, wartościami odstającymi.
+
+<<petal_width_outliers>>=
+d1 <- Petal.Width
+d1[which.min(d1)] <- min(d1) - 2*IQR(d1)
+d1[which.max(d1)] <- max(d1) + 2*IQR(d1)
+@
+
+<<pet_modified_eq_wid, echo=FALSE>>=
+d1.disc.eq.width <- discretize(d1, method = "interval", breaks=3)
+tab.d1.eq.width <- table(d1.disc.eq.width, Species)
+kable(
+  as.data.frame.matrix(tab.d1.eq.width), caption="Tabela kontyngencji dla dyskretyzacji metodą equal frequency zmodyfikowanej Petal.Width.", format="latex"
+)
+@
+Obecność wartości odstających znacząco wpływa na dyskretyzację według równych przedziałów. Dla transformacji przeprowadzonej na zmodyfikowanej zmiennej Petal.Width otrzymujemy zgodność 34.67\% (tabela: \ref{tab:pet_modified_eq_wid}), czyli aż o 61,33 punkta procentowego mniejszą od wyniku dla Petal.Width bez wartości odstających.
+
+<<outliers_petal_eq_width_plot, echo=FALSE, fig.cap="Dyskretyzacja equal width dla Petal.Width z wartościami odstającymi.">>=
+df_sep_plot <- cbind(data.frame(d1,y), Species)
+breaks.equal.freq.outliers<- attributes(d1.disc.eq.width)$"discretized:breaks"
+
+ggplot(df_sep_plot, aes(x=x, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept =breaks.kmeans1) +
+  ggtitle("Dyskretyzacja equal width.") + 
+  xlab("Petal.Width")
+@
+Widzimy na wykresie, iż wartości krańców przedziałów zostały zdeterminowane przez wartości odstające zmiennej \textit{Petal.Width}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Podsumowanie}
+
+Przeprowadzone eksperymenty pozwalają nam dostrzec, iż niezwykle ważnym dla przeprowadzenia dyskretyzacji, jest dokładna analiza zdolności dyskryminacyjnych zmiennych. Wnioskujemy, iż dla rozkładów ciężkoogonowych nie stosujemy dyskretyzacji opartej na równych przedziałach, wrażliwej na wartości odstające. Dla zbioru iris, na podstawie cechy \textit{Petal.Width}, jesteśmy w stanie określić z dużą dokładnością, do której grupy przynależy dana próba.
+
+
+
 
 \section{Analiza składowych głównych (Principal Component Analysis (PCA))}
 \subsection{Krótki opis zagadnienia}
@@ -295,8 +605,8 @@ titanic.dane <- na.omit(titanic.dane)
 titanic.dane.mds <- subset(titanic.dane, select=-c(Survived))
 
 unikatowe <- !duplicated(titanic.dane.mds)
-titanic.dane <- titanic.dane[unikatowe,][1:150,]
-titanic.dane.mds <- titanic.dane.mds[unikatowe,][1:150,] # Tu można zwiększyć / usunąć ostatnie indeksy
+titanic.dane <- titanic.dane[unikatowe,]
+titanic.dane.mds <- titanic.dane.mds[unikatowe,]
 @
 
 <<mds_przykładowe_dane, echo=FALSE>>=
