@@ -7,9 +7,11 @@ data(iris)
 attach(iris)
 
 #najlepsze zdolności dyskryminacyjne cech: Petal.Length, Petal.Width
-ggplot(iris, aes(x=Species, y=Petal.Length, color=Species)) +geom_boxplot()
+ggplot(iris, aes(x=Species, y=Petal.Length, color=Species)) +
+  geom_boxplot()
 
-ggplot(iris, aes(x=Species, y=Petal.Width, color=Species)) +geom_boxplot()
+ggplot(iris, aes(x=Species, y=Petal.Width, color=Species)) +
+  geom_boxplot()
 
 #widać to również na wykresie rozrzutu tych cech: Petal.Length, Petal.Width
 ggplot(iris, aes(x=Petal.Width, y=Petal.Length, color=Species))+
@@ -53,6 +55,7 @@ tab.d.fixed <- table(d.disc.fixed, Species)
 tab.d.fixed
 matchClasses(tab.d.fixed)
 
+
 #najlepiej sprawdzają się:
 #dyskretyzacja według równej szerokości; 
 #dyskretyzacja oparta na algorytmie k-means;
@@ -61,6 +64,71 @@ matchClasses(tab.d.fixed)
 #najgorszy wynik otrzymujemy dla dyskretyzacji według równej częstości
 #zgodność: 94.67%
 
+#wykresy rozrzutu zmiennej Petal.Length dla poszczególnych dyskretyzacji
+
+#defining multiplot function:
+
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+y <- runif(length(d))
+df_pet_plot <- cbind(data.frame(d,y), Species)
+
+
+breaks.equal.width <- attributes(d.disc.eq.width)$"discretized:breaks"
+p1 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept = breaks.equal.width) +
+  ggtitle("Dyskretyzacja metodą equal width.")
+
+breaks.equal.freq <- attributes(d.disc.eq.freq)$"discretized:breaks"
+p2 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept = breaks.equal.freq) +
+  ggtitle("Dyskretyzacja metodą equal frequency.")
+
+
+breaks.kmeans <- attributes(d.disc.km.clus)$"discretized:breaks"
+p3 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept =breaks.kmeans) +
+  ggtitle("Dyskretyzacja metodą k-means.")
+
+breaks.fixed <- attributes(d.disc.fixed)$"discretized:breaks"
+p4 <- ggplot(df_pet_plot, aes(x=d, y=y, color=Species)) +
+  geom_point() + geom_vline(xintercept =breaks.fixed) +
+  ggtitle("Dyskretyzacja metodą fixed.")
+
+multiplot(p1, p2, p3, p4, cols=2)
 #dyskretyzacja nienadzorowana dla cechy Sepal.Width:
 x <- iris[, "Sepal.Width"]
 
@@ -83,7 +151,7 @@ tab.x.km.clus
 matchClasses(tab.x.km.clus)
 
 #dyskretyzacja dla zadanych przedziałów 
-x.disc.fixed <- discretize(x, method="fixed", breaks=c(-Inf, 2.85, 3.20, Inf))
+x.disc.fixed <- discretize(x, method="fixed", breaks=c(-Inf, 2.75, 3.45, Inf))
 tab.x.fixed <- table(x.disc.fixed, Species)
 tab.x.fixed
 matchClasses(tab.x.fixed)
