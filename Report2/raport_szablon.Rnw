@@ -157,7 +157,7 @@ kable(
 
 \begin{itemize}
 
-\item dla dykretyzacji według równych przedziałów (tabela: \ref{tab:pet_eq_wid_tab}), według przedziałów zadanych ręcznie (tabela: \ref{tab:pet_fixed_tab}) oraz wykorzystującej algorytm k-means (tabela: \ref{tab:pet_kmeans_tab}) dostajemy wynik o poziomie zgodności 96\%,
+\item dla dyskretyzacji według równych przedziałów (tabela: \ref{tab:pet_eq_wid_tab}), według przedziałów zadanych ręcznie (tabela: \ref{tab:pet_fixed_tab}) oraz wykorzystującej algorytm k-means (tabela: \ref{tab:pet_kmeans_tab}) dostajemy wynik o poziomie zgodności 96\%,
 \item dla dyskretyzacji według równych częstości (tabela: \ref{tab:pet_eq_freq_tab}) otrzymujemy najgorszy wynik, współczynnik zgodności wynosi 94.67\%.
 \end{itemize}
 
