@@ -248,6 +248,9 @@ Podsumowując regresja liniowa zakłada, iż w zbiorze zmienne mają liniowe zal
 <<>>=
 library(mlbench)
 library(ipred)
+library(rpart)
+library(rpart.plot)
+library(e1071)
 @
 
 \section{Porównanie metod klasyfikacji}
@@ -277,15 +280,7 @@ str(Glass)
 # -- 5 containers
 # -- 6 tableware
 # -- 7 headlamps
-str(Vehicle)
 @
-
-
-
-
-
-
-
 
 
 
@@ -326,25 +321,145 @@ naiwny klasyfikator bayesowski
 
 W tej części zamieszczamy uzyskane wyniki, w szczególności fragmenty R-kodów wraz z tabelami i wykresami.
 
-<<>>=
+\subsubsection{Modele z domyślnymi wartościami dla wszystkich cech}
+Nasze badania rozpoczniemy od estymacji błędu klasyfikacji dla modeli
+z domyślnymi parametrami i bez wcześniejszych przekształceń danych.
+Pozwoli to nam później ocenić ewentualną poprawę wyników.
+
+
+Rozpoczniemy od losowego podziału danych na zbiór uczący (80\%) i testowy (20\%).
+
+<<ustalenie.ziarna, echo=FALSE>>=
 set.seed(14052020)
+@
+
+<<podzial.uczacy.testowy>>=
 n <- nrow(Glass)
 indeksy.zbioru.uczacego <- sample(1:n,4/5*n)
 zbior.uczacy <- Glass[indeksy.zbioru.uczacego,]
 zbior.testowy <- Glass[-indeksy.zbioru.uczacego,]
 @
 
-\subsubsection{Metoda k-najbliższych sąsiadów}
-<<>>=
-
-model.knn <- ipredknn(Type ~ ., data=zbior.uczacy, k=5)
+<<podstawa_knn>>=
+model.knn <- ipredknn(Type ~ ., data=zbior.uczacy)
 predykcje <- predict(model.knn, zbior.testowy, type="class")
 macierz.konfuzji <- table(predykcje, zbior.testowy$Type)
 
 poprawne.wyniki <- sum(diag(macierz.konfuzji))
-blad.klasyfikacji <-  1 - poprawne.wyniki / nrow(zbior.testowy)
-
+blad.klasyfikacji.knn <-  1 - poprawne.wyniki / nrow(zbior.testowy)
 @
+
+<<podstawa_drzewo>>=
+model.drzewo <- rpart(Type ~ ., data=zbior.uczacy)
+
+predykcje <- predict(model.drzewo, zbior.testowy, type="class")
+macierz.konfuzji <- table(predykcje, zbior.testowy$Type)
+
+poprawne.wyniki <- sum(diag(macierz.konfuzji))
+blad.klasyfikacji.drzewo <-  1 - poprawne.wyniki / nrow(zbior.testowy)
+
+rpart.plot(model.drzewo)
+@
+
+<<podstawa_nb>>=
+model.nb <- naiveBayes(Type ~ ., data=zbior.uczacy)
+
+predykcje <- predict(model.nb, zbior.testowy, type="class")
+macierz.konfuzji <- table(predykcje, zbior.testowy$Type)
+
+poprawne.wyniki <- sum(diag(macierz.konfuzji))
+blad.klasyfikacji.nb <-  1 - poprawne.wyniki / nrow(zbior.testowy)
+@
+
+<<echo=FALSE>>=
+wyniki <- data.frame(
+  blad.klasyfikacji.knn,
+  blad.klasyfikacji.drzewo,
+  blad.klasyfikacji.nb,
+  row.names = "błąd klasyfikacji")
+names(wyniki) <- c("knn", "drzewo", "nb")
+kable(
+  wyniki,
+  col.names = c("k-NN", "drzewo klasyfikacyjne", "naiwny klasyfikator bayesowski"),
+  format="latex"
+)
+@
+
+Do dalszych estymacji błędu klasyfikacji, wykorzystamy następujące funkcje pomocnicze
+odpowiadającą za uczenie modelu oraz estymację błędów.
+
+<<>>=
+mypredict <- function(model, newdata) predict(model, newdata, type="class")
+my.errorest <- function(formula, data, model){
+  cv.10 <- errorest(
+    formula=formula, data=data, model=model, predict=mypredict,
+    estimator="cv", est.para=control.errorest(k = 10)
+  )$error
+  cv.5 <- errorest(
+    formula=formula, data=data, model=model, predict=mypredict,
+    estimator="cv", est.para=control.errorest(k = 5)
+  )$error
+  leave.one.out <- errorest(
+    formula=formula, data=data, model=model, predict=mypredict,
+    estimator="cv", est.para=control.errorest(k = nrow(data))
+  )$error
+  bootstrap <- errorest(
+    formula=formula, data=data, model=model,
+    predict=mypredict, estimator="boot"
+  )$error
+  err632plus <- errorest(
+    formula=formula, data=data, model=model,
+    predict=mypredict, estimator="632plus"
+  )$error
+  return(list(
+    cv.5=cv.5, cv.10=cv.10, leave.one.out=leave.one.out,
+    bootstrap=bootstrap, err632plus=err632plus
+  ))
+}
+@
+
+<<surowe.porowananie.pokaz, eval=FALSE>>=
+wyniki <- data.frame(
+  row.names=c(
+    "CV5", "CV10", "leave-one-out",
+    "bootstrap (25 replications)",
+    "632+ (25 replications)"
+  )
+)
+wyniki$knn <- my.errorest(Type ~ ., Glass, ipredknn)
+wyniki$drzewo <- my.errorest(Type ~ ., Glass, rpart)
+wyniki$nb <- my.errorest(Type ~ ., Glass, naiveBayes)
+
+wyniki
+@
+
+<<surowe.porownanie, echo=FALSE>>=
+wyniki <- data.frame(
+  row.names=c(
+    "CV5", "CV10", "leave-one-out",
+    "bootstrap (25 replications)",
+    "632+ (25 replications)"
+  )
+)
+wyniki$knn <- my.errorest(Type ~ ., Glass, ipredknn)
+wyniki$drzewo <- my.errorest(Type ~ ., Glass, rpart)
+wyniki$nb <- my.errorest(Type ~ ., Glass, naiveBayes)
+
+kable(
+  wyniki,
+  format="latex",
+  col.names=c("k-NN", "drzewo klasyfikacyjne", "naiwny klasyfikator bayesowski"),
+  caption="Porównanie błędu klasyfikacji dla modeli z domyślnymi parametrami.",
+  digits=2
+)
+@
+
+
+
+
+
+\subsubsection{Metoda k-najbliższych sąsiadów}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Podsumowanie}
