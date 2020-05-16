@@ -1,0 +1,161 @@
+\documentclass[12pt, a4paper]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% dodatkowe pakiety LaTeX'a
+\usepackage[OT4]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ustawienia globalne
+<<ustawienia_globalne, echo=FALSE, warning=FALSE>>=
+library(knitr)
+opts_chunk$set(
+  fig.path='figure/',
+  fig.align='center',
+  fig.pos='H',
+  fig.width=5,
+  fig.height=4
+)
+@
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% strona tytulowa
+
+
+\title{Raport nr 3}
+\author{Emilia Kowal [249716], Jakub Dworzański [249703]}
+\maketitle
+\tableofcontents
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Zad. 1
+\section{Klasyfikacja na bazie modelu regresji liniowej}
+\subsection{}
+\subsubsection{}
+\subsection{}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Zad. 2
+<<>>=
+library(mlbench)
+library(ipred)
+@
+
+\section{Porównanie metod klasyfikacji}
+
+\subsection{Opis danych}
+<<>>=
+data(Glass)
+str(Glass)
+# more info:
+# https://archive.ics.uci.edu/ml/datasets/glass+identification
+# 1. Id number: 1 to 214
+# 2. RI: refractive index
+# (unit measurement: weight percent in corresponding oxide, as are attributes 4-10)
+# 3. Na: Sodium 
+# 4. Mg: Magnesium
+# 5. Al: Aluminum
+# 6. Si: Silicon
+# 7. K: Potassium
+# 8. Ca: Calcium
+# 9. Ba: Barium
+# 10. Fe: Iron
+# 11. Type of glass: (class attribute)
+# -- 1 building_windows_float_processed
+# -- 2 building_windows_non_float_processed
+# -- 3 vehicle_windows_float_processed
+# -- 4 vehicle_windows_non_float_processed (none in this database)
+# -- 5 containers
+# -- 6 tableware
+# -- 7 headlamps
+str(Vehicle)
+@
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Krótki opis zagadnienia}
+
+W tym ćwiczeniu, mamy do czynienia ze zbiorem danych o odłamkach szkła.
+<<przykladowe_dane, echo=FALSE>>=
+kable(head(Glass), caption="Przykładowe dane", format="latex")
+@
+<<przykladowe_dane_pokaz ,eval=FALSE>>=
+head(Glass)
+@
+
+
+Dane składają się z informacji, dotyczących 214 odłamków.
+Każdy z rekordów składa się ze współczynnika załamania światła ({\verb+RI+})
+oraz stężenia różnych pierwiastków (w odpowiadających tlenkach)
+w badanych próbkach.
+Oprócz tego, posiadamy informacje o typie szkła,
+którego 
+Łącznie, dla każdej próbki występuje 13 cech.
+Ponadto, w zbiorze nie ma wartości brakujących.
+
+CDN
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Opis eksperymentów/analiz}
+
+Na pewno:
+k-NN
+drzewka
+naiwny klasyfikator bayesowski
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Wyniki}
+
+W tej części zamieszczamy uzyskane wyniki, w szczególności fragmenty R-kodów wraz z tabelami i wykresami.
+
+<<>>=
+set.seed(14052020)
+n <- nrow(Glass)
+indeksy.zbioru.uczacego <- sample(1:n,4/5*n)
+zbior.uczacy <- Glass[indeksy.zbioru.uczacego,]
+zbior.testowy <- Glass[-indeksy.zbioru.uczacego,]
+@
+
+\subsubsection{Metoda k-najbliższych sąsiadów}
+<<>>=
+
+model.knn <- ipredknn(Type ~ ., data=zbior.uczacy, k=5)
+predykcje <- predict(model.knn, zbior.testowy, type="class")
+macierz.konfuzji <- table(predykcje, zbior.testowy$Type)
+
+poprawne.wyniki <- sum(diag(macierz.konfuzji))
+blad.klasyfikacji <-  1 - poprawne.wyniki / nrow(zbior.testowy)
+
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Podsumowanie}
+Najważniejsze wnioski, jakie udało się wysnuć na podstawie przeprowadzonych analiz/eksperymentów. Wnioski mogą być wypunktowane, tzn.:
+
+
+
+Można by zacytować zbióóóóóóóóór danych
+\end{document}

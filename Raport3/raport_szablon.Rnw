@@ -1,0 +1,131 @@
+\documentclass[12pt, a4paper]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% dodatkowe pakiety LaTeX'a
+\usepackage[OT4]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ustawienia globalne
+<<ustawienia_globalne, echo=FALSE, warning=FALSE>>=
+library(knitr)
+library(xtable) #pakiet do tworzenia tabel w formacie LaTeX'a
+opts_chunk$set(fig.path='figure/', fig.align='center', fig.pos='H',fig.width=5, fig.height=4)
+# UWAGA: w razie potrzeby można zmieniać te ustawienia w danym chunk'u!
+@
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% strona tytulowa
+\title{Szablon raportu}
+\author{Imię i nazwisko autora(ki) raportu \\ album 123456}
+\maketitle
+\tableofcontents
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Krótki opis zagadnienia}
+
+Tutaj umieszczamy \underline{krótki} opis zagadnienia, w szczególności:
+\begin{itemize}
+\item Co będziemy badali/analizowali?
+\item Na jakie pytania chcemy znaleźć odpowiedź?
+\end{itemize}
+
+W razie potrzeby,  wykorzystując składnię \LaTeX'a, możemy łatwo wstawiać wzory matematyczne. Wzór w tekście wstawiamy tak: $a^2+b^2=c^2$. Równanie (\ref{eq:wzor1}) to natomiast przykład wzoru w tzw. trybie eksponowanym:
+\begin{equation}
+\label{eq:wzor1}
+\overline{X} = \frac{1}{n}\sum_{i=1}^n X_i,
+\end{equation}
+gdzie $n$ oznacza liczbę obserwacji.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Opis eksperymentów/analiz}
+
+\begin{itemize}
+	\item Jakie eksperymenty (symulacje komputerowe) lub analizy zostaną przeprowadzone?
+	\item Jakie parametry wykorzystamy w symulacjach? (np.: rozpatrywane długości próby ($n$), rodzaje i parametry rozkładów prawdopodobieństwa, itp.)
+  \item Jakie narzędzia zostaną wykorzystane w analizie? (np. metody graficzne, testy statystyczne, itp.)
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Wyniki}
+
+W tej części zamieszczamy uzyskane wyniki, w szczególności fragmenty R-kodów wraz z tabelami i wykresami.
+
+\subsection{Kilka ogólnych zaleceń}
+
+\begin{itemize}
+\item Wyniki symulacji/analiz powinny być przedstawione w przejrzystej potaci. Zamieszczając wykresy pamiętamy o: opisach osi, odpowiednim skalowaniu rysunku\\ (np.: \verb+plot(..., xlim=c(x.min,x.max), ylim=c(y.min,y.max))+),  legendzie (niezbędnej, gdy na wykresie mamy kilka linii), dodaniu podpisu pod wykresem/tabelą, itp.
+\item  W miarę możliwości przedstawiamy wyniki w  skondensowanej formie (np. porównując kilka wykresów na jednym rysunku, zestawiając uzyskane wyniki w tabeli itp.).
+\item  Warto zastanowić się czy wszystkie  fragmenty R-kodów powinny być widoczne w raporcie (parametr {\verb+echo=TRUE/FALSE+}).
+\item W przypadku bardziej złożonych analiz/symulacji, aby poprawić przejrzystość,  warto rozważyć podział sekcji zawierającej wyniki na odpowiednie podsekcje (polecenie {\verb+\subsubsection()+}).
+\item Pamiętamy o starannym formatowaniu R-kodów i pisaniu komentarzy (także w przypadku fragmentów kodów ,,niewidocznych'' w raporcie). Do formatowania R-kodów można wykorzystać (z poziomu RStudio) opcję: $Code\; \Rightarrow\; Reformat\; Code$.
+\end{itemize}
+
+\subsection{Fragmenty R-kodów}
+
+Fragmenty R-kodów (tzw. {\em chunki}) wstawiamy wykorzystując odpowiednie znaczniki.
+Oto przykład:
+<<przykladowy_kod, echo=TRUE, eval=TRUE>>=
+# proba z rozkladu normalnego
+X <- rnorm(100)
+
+# wskazniki sumaryczne
+summary(X)
+@
+
+
+\subsection{Wykresy i tabele}
+
+Rysunki generujemy dynamicznie, wpisując odpowiednie polecenia R'a, np. aby wyznaczyć histogram wygenerowanej próby wpisujemy:
+<<przykladowy_rysunek, echo=TRUE, eval=TRUE, fig.cap="Wstawiamy podpis pod rysunkiem">>=
+hist(X, main="Histogram wygenerowanej proby")
+@
+Aby dodać odnośnik do rysunku, wystarczy napisać: Rysunek~\ref{fig:przykladowy_rysunek} przedstawia histogram wygenerowanej próby.
+
+Równie łatwo można tworzyć tabele wykorzystując funkcję {\em xtable()}. Poniżej przykład.
+<<przykladowa_tabela, echo=FALSE, eval=TRUE, results='asis'>>=
+wyniki <- matrix(rnorm(20), 4)
+colnames(wyniki) <- paste0("metoda-", 1:5)
+rownames(wyniki) <- paste0("kryterium-", letters[1:4])
+tab1 <- xtable( wyniki, digits = 3, row.names = TRUE, caption = "Wstawiamy podpis pod tabelą", label = "tab:tabela1")
+print(tab1, type = "latex", table.placement = "H")
+# uwaga:
+# Aby ukryć nazwy wierszy wpisujemy: include.rownames=FALSE)
+@
+W tekście raportu możemy także łatwo dodać odnośnik do tabeli~\ref{tab:tabela1}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Podsumowanie}
+Najważniejsze wnioski, jakie udało się wysnuć na podstawie przeprowadzonych analiz/eksperymentów. Wnioski mogą być wypunktowane, tzn.:
+\begin{itemize}
+\item Tutaj wniosek nr 1
+\item Tutaj wniosek nr 2
+\item  \dots
+\end{itemize}
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ Jeżeli korzystaliśmy z dodatkowych materiałów źródłowych, powinniśmy je umieścić w spisie lieratury. Na przykład, załóżmy, że w raporcie powołujemy się na książkę P.Dalgaarda (2008)  oraz skrypt R.Kosteckiego (2008).
+ Wówczas spis literatury powinien wyglądać tak:
+%
+\begin{thebibliography}{9}
+
+\bibitem{Dalgard2008}
+  Peter Dalgaard, \emph{Introductory Statistics with R}, Springer-Verlag New York, 2008.
+
+\bibitem{LaTeXkurs}
+Ryszard Paweł Kostecki, \emph{W miarę krótki i praktyczny kurs \LaTeX-a w $\pi^e$ minut}, \url{http://www.fuw.edu.pl/~kostecki/kurs_latexa.pdf}, 2008.
+
+\end{thebibliography}
+
+
+\end{document}
