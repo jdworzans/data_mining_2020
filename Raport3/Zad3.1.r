@@ -51,15 +51,19 @@ rowSums(Y_result)
 ggplot(data.frame(Y_test), aes(x=Y_test)) + geom_bar()
 
 # sprawdzamy, czy model nie jest przetrenowany:
-Y_result.train <- as.matrix(X_train) %*% B
+  Y_result.train <- as.matrix(X_train) %*% B
+  
+  maks.ind.train <- apply(Y_result.train, 1, FUN=function(x) which.max(x))
+  prognozowane.etykietki.train <- klasy[maks.ind.train]
+  rzeczywiste.etykietki.train <- Y_train
+  
+  conf_mtrx.train <- table(rzeczywiste.etykietki.train, prognozowane.etykietki.train)
+  conf_mtrx.train
+  sum(diag(conf_mtrx.train))/length(Y_train)
 
-maks.ind.train <- apply(Y_result.train, 1, FUN=function(x) which.max(x))
-prognozowane.etykietki.train <- klasy[maks.ind.train]
-rzeczywiste.etykietki.train <- Y_train
-
-conf_mtrx.train <- table(rzeczywiste.etykietki.train, prognozowane.etykietki.train)
-conf_mtrx.train
-sum(diag(conf_mtrx.train))/length(Y_train)
+matplot(Y_result.train, ylab="Predykcja")
+abline(v=c(40,80), lty=2, col="grey")
+legend(x="top", legend=paste(1:3,levels(Species)), col=1:3, text.col=1:3)
 
 
 # ZBIÓR DANYCH Z NOWYMI ZMIENNYMI:
@@ -97,6 +101,7 @@ prognozowane.etykietki.n <- klasy[maks.ind.n]
 rzeczywiste.etykietki.n <- Y_test_n
 
 conf_mtrx_n <- table(rzeczywiste.etykietki.n, prognozowane.etykietki.n)
+rownames(conf_mtrx_n) <- c("setosa.true", "versicolor.true", "virginica.true")
 conf_mtrx_n
 sum(diag(conf_mtrx_n))/length(Y_test_n)
 

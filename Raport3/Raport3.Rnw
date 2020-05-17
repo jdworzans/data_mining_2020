@@ -78,7 +78,7 @@ Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 
 \subsection{Wyniki.}
 
-Na podstawie wykresu widzimy, że obiekty są uporządkowane ze względu na przynależność do danej klasy:
+Na podstawie wykresu widzimy, iż poszczególne klasy zwierają tyle samo obiektów:
 <<klasy, echo=FALSE, fig.cap="Przynależności do klas.">>=
 ggplot(data=iris, aes(x=Species)) + 
   geom_bar() + labs(x="gatunek", y="liczebność gatunku")
@@ -157,14 +157,22 @@ matplot(Y_result.train, ylab="Predykcja")
 @
 
 \subsubsection{Analiza skuteczności modelu dla zbioru danych ze składnikami wielomianowymi stopnia 2.}
-Do konstrukcji drugiego modelu regresji wykorzystujemy zbiór z wyjściowymi cechami oraz zmiennymi \textit{Petal.Length}$^2$ oraz \textit{Petal.Width}$*$\textit{Sepal.Length}. 
+Do konstrukcji drugiego modelu regresji wykorzystujemy zbiór z wyjściowymi cechami oraz zmiennymi wielomianowymi stopnia 2. 
 <<new_dataset, echo=FALSE>>=
-  new_iris <- cbind(Petal.Length^2, Petal.Width*Sepal.Length, iris)
+  new_iris <- cbind(Petal.Length^2, Petal.Width^2, 
+                  Sepal.Length^2, Sepal.Width^2,
+                  Petal.Length*Petal.Width,
+                  Petal.Width*Sepal.Length,
+                  Petal.Length*Sepal.Width,
+                  Petal.Length*Sepal.Length,
+                  Petal.Width*Sepal.Width,
+                  Sepal.Length*Sepal.Width,
+                  iris)
 
-X_train_n <- cbind(rep(1,120),new_iris[train_ind, 1:6])
-X_test_n <- cbind(rep(1,30),new_iris[-train_ind, 1:6])
-Y_train_n <- new_iris[train_ind, 7]
-Y_test_n <- new_iris[-train_ind, 7]
+X_train_n <- cbind(rep(1,120),new_iris[train_ind, 1:14])
+X_test_n <- cbind(rep(1,30),new_iris[-train_ind, 1:14])
+Y_train_n <- new_iris[train_ind, 15]
+Y_test_n <- new_iris[-train_ind, 15]
 
 # konwersja zmiennej kategorycznej na macierz wskaźnikową:
 Y_train_bin_n <- to.dummy(Y_train_n, prefix="species")
