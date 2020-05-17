@@ -57,7 +57,7 @@ attach(iris)
 head(iris)
 @
 
-Zbiór danych zawiera 150 wierszy z informacjami na temat 3 gatunków irysów: setosa, versicolor i virginica. Zmienne dostarczają nam wiedzy o szerokości i długości działki kielicha oraz płatka.
+Zbiór danych zawiera 150 wierszy z informacjami na temat 3 gatunków irysów: \textit{setosa}, \textit{versicolor} i \textit{virginica}. Zmienne dostarczają nam wiedzy o szerokości i długości działki kielicha oraz płatka.
 Dane nie zawierają obserwacji brakujących.
 
 Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
