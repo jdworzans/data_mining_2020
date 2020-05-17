@@ -79,7 +79,7 @@ Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 
 \subsection{Wyniki}
 
-Na podstawie wykresu widzimy, że obiekty są uporządkowane ze względu na przynależność do danej klasy:
+Na podstawie wykresu \ref{fig:klasy} widzimy, że obiekty są uporządkowane ze względu na przynależność do danej klasy:
 <<klasy, echo=FALSE, fig.cap="Przynależności do klas.">>=
 ggplot(data=iris, aes(x=Species)) + 
   geom_bar() + labs(x="gatunek", y="liczebność gatunku")
