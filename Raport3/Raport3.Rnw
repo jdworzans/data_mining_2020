@@ -254,6 +254,7 @@ library(mlbench)
 library(ipred)
 library(rpart)
 library(e1071)
+library(purrr)
 @
 
 \section{Porównanie metod klasyfikacji}
@@ -320,26 +321,26 @@ odpowiadające za uczenie modelu oraz estymację błędów.
 
 <<funkcje.pomocnicze>>=
 mypredict <- function(model, newdata) predict(model, newdata, type="class")
-nasz.errorest <- function(formula, data, model){
+nasz.errorest <- function(formula, data, model, ...){
   cv.10 <- errorest(
     formula=formula, data=data, model=model, predict=mypredict,
-    estimator="cv", est.para=control.errorest(k = 10)
+    estimator="cv", est.para=control.errorest(k = 10), ...
   )$error
   cv.5 <- errorest(
     formula=formula, data=data, model=model, predict=mypredict,
-    estimator="cv", est.para=control.errorest(k = 5)
+    estimator="cv", est.para=control.errorest(k = 5), ...
   )$error
   leave.one.out <- errorest(
     formula=formula, data=data, model=model, predict=mypredict,
-    estimator="cv", est.para=control.errorest(k = nrow(data))
+    estimator="cv", est.para=control.errorest(k = nrow(data)), ...
   )$error
   bootstrap <- errorest(
     formula=formula, data=data, model=model,
-    predict=mypredict, estimator="boot"
+    predict=mypredict, estimator="boot", ...
   )$error
   err632plus <- errorest(
     formula=formula, data=data, model=model,
-    predict=mypredict, estimator="632plus"
+    predict=mypredict, estimator="632plus", ...
   )$error
   return(data.frame(
     paste0(
@@ -410,6 +411,88 @@ modeli, aby poprawić otrzymane rezultaty.
 
 
 \subsubsection{Metoda k-najbliższych sąsiadów}
+Sprawdzimy, jak możemy zmienić jakość modelu k-NN, zmieniając
+wartość \emph{k}, która reprezentuje liczbę sąsiadów, na podstawie których
+wybieramy klasę.
+
+<<knn.k.pokaz, eval=FALSE>>=
+wyniki["k.nn.1"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=1))
+wyniki["k.nn.2"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=2))
+wyniki["k.nn.3"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=3))
+wyniki["k.nn.4"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=4))
+wyniki["k.nn.10"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=10))
+wyniki["k.nn.15"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=15))
+wyniki["k.nn.20"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=20))
+
+wyniki
+@
+
+<<knn.k, echo=FALSE, cache=TRUE>>=
+wyniki["k.nn.1"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=1))
+wyniki["k.nn.2"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=2))
+wyniki["k.nn.3"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=3))
+wyniki["k.nn.4"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=4))
+wyniki["k.nn.10"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=10))
+wyniki["k.nn.15"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=15))
+wyniki["k.nn.20"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=20))
+
+kable(
+  wyniki[c("k.nn.1", "k.nn.2", "k.nn.3", "k.nn.4", "k.nn",
+           "k.nn.10", "k.nn.15", "k.nn.20")],
+  col.names=c("k=1", "k=2", "k=3", "k=4", "k=5", "k=10", "k=15", "k=20"),
+  format="latex",
+  caption="Sprawdzenie poprawy błędu klasyfikacji po zmianie parametru k."
+)
+@
+
+Na podstawie tabeli \ref{tab:knn.k} widzimy, że istotnie możemy znacznie
+poprawić wyniki, zmieniając wyłącznie parametr k. Ponadto, widzimy, że
+w porównaniu do pozostałych wartości, model bardzo dobrze działa dla k=1.
+
+Aby poprawić wyniki, możemy jeszcze spróbować ograniczyć liczbę zmiennych,
+stosując PCA.
+
+<<knn.k.pca.pokaz, eval=FALSE>>=
+Glass.pca <- prcomp(subset(Glass, select=-c(Type)), retx=T, center=T, scale.=T)
+Glass.pca <- data.frame(Glass.pca$x[,1:4])
+Glass.pca$Type <- Glass$Type
+
+wyniki["k.nn.1.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=1))
+wyniki["k.nn.2.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=2))
+wyniki["k.nn.3.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=3))
+wyniki["k.nn.4.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=4))
+wyniki["k.nn.5.pca"] <- nasz.errorest(Type ~ ., Glass.pca, ipredknn)
+wyniki["k.nn.10.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=10))
+wyniki["k.nn.15.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=15))
+wyniki["k.nn.20.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=20))
+
+wyniki
+@
+
+<<knn.k.pca, echo=FALSE, cache=TRUE>>=
+Glass.pca <- prcomp(subset(Glass, select=-c(Type)), retx=T, center=T, scale.=T)
+Glass.pca <- data.frame(Glass.pca$x[,1:4])
+Glass.pca$Type <- Glass$Type
+
+wyniki["k.nn.1.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=1))
+wyniki["k.nn.2.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=2))
+wyniki["k.nn.3.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=3))
+wyniki["k.nn.4.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=4))
+wyniki["k.nn.5.pca"] <- nasz.errorest(Type ~ ., Glass.pca, ipredknn)
+wyniki["k.nn.10.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=10))
+wyniki["k.nn.15.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=15))
+wyniki["k.nn.20.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=20))
+
+kable(
+  wyniki[c("k.nn.1.pca", "k.nn.2.pca", "k.nn.3.pca", "k.nn.4.pca", "k.nn.5.pca",
+           "k.nn.10.pca", "k.nn.15.pca", "k.nn.20.pca")],
+  col.names=c("k=1", "k=2", "k=3", "k=4", "k=5", "k=10", "k=15", "k=20"),
+  format="latex",
+  caption="Sprawdzenie poprawy błędu klasyfikacji po użyciu pierwszych 4 głównych składowych"
+)
+@
+
+
 
 \subsubsection{Drzewo klasyfikacyjne}
 Skorzystamy z metody jednego odchylenia standardowego,
@@ -442,7 +525,7 @@ kable(
   wyniki[c("drzewo", "przyciete.drzewo")],
   col.names=c("drzewo", "przycięte drzewo"),
   format="latex",
-  caption="Sprawdzenie poprawy błędu klasyfikacji po przycięciu drzewa."
+  caption="Sprawdzenie poprawy błędu klasyfikacji po przycięciu drzewa"
 )
 @
 
