@@ -521,9 +521,8 @@ metody 1 odchylenia standardowego pozwala nie zmienia znacząco wyników.
 Możemy jednak przypuszczać, że przycięte drzewo ma lepsze właściwości
 uogólniające.
 
-Możemy również spróbować wybrać najważniejsze zmienne, na podstawie
-konstrukcji drzewa klasyfikacyjnego, a następnie skonstruować model
-na podstawie tych cech.
+Możemy również spróbować wybrać najważniejsze zmienne, tworząc drzewo klasyfikacyjne,
+a następnie skonstruować model z wykorzystaniem tych cech.
 
 <<waznosc.zmiennych.pokaz, eval=FALSE>>=
 drzewo <- rpart(Type~., Glass, minsplit=1)
