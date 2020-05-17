@@ -452,6 +452,72 @@ metody 1 odchylenia standardowego pozwala nie zmienia znacząco wyników.
 Możemy jednak przypuszczać, że przycięte drzewo ma lepsze właściwości
 uogólniające.
 
+Możemy również spróbować wybrać najważniejsze zmienne, na podstawie
+konstrukcji drzewa klasyfikacyjnego, a następnie skonstruować model
+na podstawie tych cech.
+
+<<waznosc.zmiennych.pokaz, eval=FALSE>>=
+drzewo <- rpart(Type~., Glass, minsplit=1)
+drzewo$variable.importance
+@
+<<waznosc.zmiennych, echo=FALSE, cache=TRUE>>=
+drzewo <- rpart(Type~., Glass, minsplit=1)
+kable(drzewo$variable.importance, col.names="Ważność zmiennej", format="latex",
+      caption="Ważność zmiennych na podstawie konstrukcji drzewa klasyfikacyjnego")
+@
+
+Na podstawie otrzymanych ważności zmiennych
+(tab.\ref{tab:waznosc.zmiennych}), spróbujemy skonstruować dwa modele,
+ograniczając ilość zmiennych w modelu.
+
+<<drzewa.ograniczone.zmienne.pokaz, eval=FALSE>>=
+wyniki["drzewo1"] <- nasz.errorest(
+  Type ~ RI + Al + Ca, Glass, rpart
+)
+wyniki["drzewo2"] <- nasz.errorest(
+  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, rpart
+)
+wyniki["drzewo1.przyciete"] <- nasz.errorest(
+  Type ~ RI + Al + Ca, Glass, nasze.drzewo
+)
+wyniki["drzewo2.przyciete"] <- nasz.errorest(
+  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo()
+)
+
+wyniki
+@
+
+<<drzewa.ograniczone.zmienne, echo=FALSE, cache=TRUE>>=
+wyniki["drzewo1"] <- nasz.errorest(
+  Type ~ RI + Al + Ca, Glass, rpart
+)
+wyniki["drzewo2"] <- nasz.errorest(
+  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, rpart
+)
+wyniki["drzewo1.przyciete"] <- nasz.errorest(
+  Type ~ RI + Al + Ca, Glass, nasze.drzewo
+)
+wyniki["drzewo2.przyciete"] <- nasz.errorest(
+  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo
+)
+kable(
+  wyniki[c("drzewo1", "drzewo1.przyciete", "drzewo2", "drzewo2.przyciete")],
+  col.names=c("drzewo 1", "przycięte drzewo 1","drzewo 2", "przycięte drzewo 2"),
+  format="latex",
+  caption="Wyniki dla drzew z ograniczoną ilością zmiennych niezależnych")
+@
+
+Na podstawie wyników z tabeli \ref{tab:drzewa.ograniczone.zmienne},
+widzimy, że spośród tych modeli, najlepiej sprawdza się model ograniczony do
+6 najważniejszych zmiennych, który jest przycinany po konstrukcji.
+Ponadto, możemy zauważyć, że te wyniki są lepsze niż
+wstępne wyniki(tab.\ref{przyciete.drzewo}).
+
+
+TODO:
+Aby spróbować poprawić wyniki jeszcze bardziej, spróbujemy skorzystać
+z komitetów drzew klasyfikacyjnych. W tym celu wykorzystamy metody
+bagging, boosting oraz lasy losowe.
 
 
 
