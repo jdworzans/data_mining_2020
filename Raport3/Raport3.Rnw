@@ -48,6 +48,7 @@ library(varhandle)
 @
 
 \subsection{Krótki opis zagadnienia.}
+\subsection{Krótki opis zagadnienia}
 W tej sekcji będziemy zajmować się klasyfikacją opartą na modelu regresji liniowej, z wykorzystaniem metody najmniejszych kwadratów.
 Analizy dokonujemy na zbiorze danych \textit{iris}:
 
@@ -57,8 +58,9 @@ attach(iris)
 head(iris)
 @
 
-Zbiór danych zawiera 150 wierszy z informacjami na temat 3 gatunków irysów: setosa, versicolor i virginica. Zmienne dostarczają nam wiedzy o szerokości i długości działki kielicha oraz płatka.
-Dane nie zawierają obserwacji brakujących. \\
+Zbiór danych zawiera 150 wierszy z informacjami na temat 3 gatunków irysów: \textit{setosa}, \textit{versicolor} i \textit{virginica}. Zmienne dostarczają nam wiedzy o szerokości i długości działki kielicha oraz płatka.
+Dane nie zawierają obserwacji brakujących.
+
 Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 \begin{itemize}
 \item skuteczność klasyfikacji opartej na modelu regresji liniowej;
@@ -67,7 +69,7 @@ Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 \item wpływ składników wielomianowych stopnia 2 na dokładność klasyfikacji.
 \end{itemize}
 
-\subsection{Opis eksperymentów/analiz.}
+\subsection{Opis eksperymentów/analiz}
 
 \begin{itemize}
 \item W pierwszym kroku, budując model klasyfikacyjny, dokonujemy podziału zbioru danych na treningowy oraz testowy w stosunku 1:5. 
@@ -76,9 +78,13 @@ Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 \item Ostatecznie badamy wpływ składników wielomianowych stopnia 2 na dokładność modelu regresji liniowej, dodając do zbioru danych cechę Petal.Length$^2$ oraz Petal.Width$*$Sepal.Length.
 \end{itemize}
 
-\subsection{Wyniki.}
+\subsection{Wyniki}
 
+<<<<<<< HEAD
 Na podstawie wykresu widzimy, iż poszczególne klasy zwierają tyle samo obiektów:
+=======
+Na podstawie wykresu \ref{fig:klasy} widzimy, że obiekty są uporządkowane ze względu na przynależność do danej klasy:
+>>>>>>> a6698342bdea2e4271164630bc352bd21b953843
 <<klasy, echo=FALSE, fig.cap="Przynależności do klas.">>=
 ggplot(data=iris, aes(x=Species)) + 
   geom_bar() + labs(x="gatunek", y="liczebność gatunku")
