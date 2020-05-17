@@ -55,7 +55,7 @@ Analizy dokonujemy na zbiorze danych \textit{iris}:
 <<echo=FALSE>>=
 data(iris)
 attach(iris)
-head(iris)
+kable(head(iris), format="latex", caption="Przykładowe dane")
 @
 
 Zbiór danych zawiera 150 wierszy z informacjami na temat 3 gatunków irysów: \textit{setosa}, \textit{versicolor} i \textit{virginica}. Zmienne dostarczają nam wiedzy o szerokości i długości działki kielicha oraz płatka.
