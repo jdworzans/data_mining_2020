@@ -255,6 +255,7 @@ library(ipred)
 library(rpart)
 library(e1071)
 library(purrr)
+library(naivebayes)
 @
 
 \section{Porównanie metod klasyfikacji}
@@ -416,30 +417,30 @@ wartość \emph{k}, która reprezentuje liczbę sąsiadów, na podstawie któryc
 wybieramy klasę.
 
 <<knn.k.pokaz, eval=FALSE>>=
-wyniki["k.nn.1"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=1))
-wyniki["k.nn.2"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=2))
-wyniki["k.nn.3"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=3))
-wyniki["k.nn.4"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=4))
-wyniki["k.nn.10"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=10))
-wyniki["k.nn.15"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=15))
-wyniki["k.nn.20"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=20))
+knn <- function(k) partial(ipredknn, k=k)
+wyniki["k.nn.1"] <- nasz.errorest(Type ~ ., Glass, knn(1))
+wyniki["k.nn.2"] <- nasz.errorest(Type ~ ., Glass, knn(2))
+wyniki["k.nn.3"] <- nasz.errorest(Type ~ ., Glass, knn(3))
+wyniki["k.nn.4"] <- nasz.errorest(Type ~ ., Glass, knn(4))
+wyniki["k.nn.10"] <- nasz.errorest(Type ~ ., Glass, knn(10))
+wyniki["k.nn.15"] <- nasz.errorest(Type ~ ., Glass, knn(15))
 
 wyniki
 @
 
 <<knn.k, echo=FALSE, cache=TRUE>>=
-wyniki["k.nn.1"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=1))
-wyniki["k.nn.2"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=2))
-wyniki["k.nn.3"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=3))
-wyniki["k.nn.4"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=4))
-wyniki["k.nn.10"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=10))
-wyniki["k.nn.15"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=15))
-wyniki["k.nn.20"] <- nasz.errorest(Type ~ ., Glass, partial(ipredknn, k=20))
+knn <- function(k) partial(ipredknn, k=k)
+wyniki["k.nn.1"] <- nasz.errorest(Type ~ ., Glass, knn(1))
+wyniki["k.nn.2"] <- nasz.errorest(Type ~ ., Glass, knn(2))
+wyniki["k.nn.3"] <- nasz.errorest(Type ~ ., Glass, knn(3))
+wyniki["k.nn.4"] <- nasz.errorest(Type ~ ., Glass, knn(4))
+wyniki["k.nn.10"] <- nasz.errorest(Type ~ ., Glass, knn(10))
+wyniki["k.nn.15"] <- nasz.errorest(Type ~ ., Glass, knn(15))
 
 kable(
   wyniki[c("k.nn.1", "k.nn.2", "k.nn.3", "k.nn.4", "k.nn",
-           "k.nn.10", "k.nn.15", "k.nn.20")],
-  col.names=c("k=1", "k=2", "k=3", "k=4", "k=5", "k=10", "k=15", "k=20"),
+           "k.nn.10", "k.nn.15")],
+  col.names=c("k=1", "k=2", "k=3", "k=4", "k=5", "k=10", "k=15"),
   format="latex",
   caption="Sprawdzenie poprawy błędu klasyfikacji po zmianie parametru k."
 )
@@ -457,14 +458,13 @@ Glass.pca <- prcomp(subset(Glass, select=-c(Type)), retx=T, center=T, scale.=T)
 Glass.pca <- data.frame(Glass.pca$x[,1:4])
 Glass.pca$Type <- Glass$Type
 
-wyniki["k.nn.1.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=1))
-wyniki["k.nn.2.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=2))
-wyniki["k.nn.3.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=3))
-wyniki["k.nn.4.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=4))
+wyniki["k.nn.1.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(1))
+wyniki["k.nn.2.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(2))
+wyniki["k.nn.3.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(3))
+wyniki["k.nn.4.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(4))
 wyniki["k.nn.5.pca"] <- nasz.errorest(Type ~ ., Glass.pca, ipredknn)
-wyniki["k.nn.10.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=10))
-wyniki["k.nn.15.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=15))
-wyniki["k.nn.20.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=20))
+wyniki["k.nn.10.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(10))
+wyniki["k.nn.15.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(15))
 
 wyniki
 @
@@ -474,24 +474,26 @@ Glass.pca <- prcomp(subset(Glass, select=-c(Type)), retx=T, center=T, scale.=T)
 Glass.pca <- data.frame(Glass.pca$x[,1:4])
 Glass.pca$Type <- Glass$Type
 
-wyniki["k.nn.1.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=1))
-wyniki["k.nn.2.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=2))
-wyniki["k.nn.3.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=3))
-wyniki["k.nn.4.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=4))
+wyniki["k.nn.1.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(1))
+wyniki["k.nn.2.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(2))
+wyniki["k.nn.3.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(3))
+wyniki["k.nn.4.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(4))
 wyniki["k.nn.5.pca"] <- nasz.errorest(Type ~ ., Glass.pca, ipredknn)
-wyniki["k.nn.10.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=10))
-wyniki["k.nn.15.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=15))
-wyniki["k.nn.20.pca"] <- nasz.errorest(Type ~ ., Glass.pca, partial(ipredknn, k=20))
+wyniki["k.nn.10.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(10))
+wyniki["k.nn.15.pca"] <- nasz.errorest(Type ~ ., Glass.pca, knn(15))
 
 kable(
   wyniki[c("k.nn.1.pca", "k.nn.2.pca", "k.nn.3.pca", "k.nn.4.pca", "k.nn.5.pca",
-           "k.nn.10.pca", "k.nn.15.pca", "k.nn.20.pca")],
-  col.names=c("k=1", "k=2", "k=3", "k=4", "k=5", "k=10", "k=15", "k=20"),
+           "k.nn.10.pca", "k.nn.15.pca")],
+  col.names=c("k=1", "k=2", "k=3", "k=4", "k=5", "k=10", "k=15"),
   format="latex",
   caption="Sprawdzenie poprawy błędu klasyfikacji po użyciu pierwszych 4 głównych składowych"
 )
 @
 
+W tabeli \ref{tab:knn.k.pca} widzimy, że po redukcji danych do 4 pierwszych
+głównych składowych (wyjaśniają one około 80\% wariancji), wyniki są porównywalne
+z tymi bez redukcji danych.
 
 
 \subsubsection{Drzewo klasyfikacyjne}
@@ -594,13 +596,41 @@ Na podstawie wyników z tabeli \ref{tab:drzewa.ograniczone.zmienne},
 widzimy, że spośród tych modeli, najlepiej sprawdza się model ograniczony do
 6 najważniejszych zmiennych, który jest przycinany po konstrukcji.
 Ponadto, możemy zauważyć, że te wyniki są lepsze niż
-wstępne wyniki(tab.\ref{przyciete.drzewo}).
+wstępne wyniki(tab.\ref{tab:przyciete.drzewo}).
 
+\subsubsection{Naiwny klasyfikator bayesowski}
+W tej części postaramy się poprawić wyniki naiwnego klasyfikatora bayesowskiego.
 
-TODO:
-Aby spróbować poprawić wyniki jeszcze bardziej, spróbujemy skorzystać
-z komitetów drzew klasyfikacyjnych. W tym celu wykorzystamy metody
-bagging, boosting oraz lasy losowe.
+Wszystkie zmienne w naszym zbiorze to zmienne ciągłe. Domyślnie, implementacja
+naiwnego klasyfikatora bayesowskiego dokonuje założenia o rozkładzie normalnym
+zmiennych ciągłych. Dlatego też rozpoczniemy od zmiany tego założenia na
+estymację gęstości rozkładów zmiennych ciągłych.
+
+<<nb.kernel.pokaz, eval=FALSE>>=
+wyniki["nb.kernel"] <- nasz.errorest(Type~., Glass, naive_bayes, usekernel=T)
+wyniki[c("nb", "nb.kernel")]
+@
+<<nb.kernel, echo=FALSE, cache=TRUE, warning=FALSE>>=
+wyniki["nb.kernel"] <- nasz.errorest(Type~., Glass, naive_bayes, usekernel=T)
+
+kable(
+  wyniki[c("nb", "nb.kernel")],
+  col.names=c("rozkład normalny", "estymacja gęstości rozkładu"),
+  caption="Porównanie wyników naiwnego klasyfikatora bayesowskiego z użyciem estymacji gęstości rozkładu"
+)
+@
+
+W tabeli \ref{tab:nb.kernel} widzimy, że prosta zmiana pozwoliła na
+znaczną poprawę wyników.
+
+\subsubsection{Komitety klasyfikatorów}
+Po zbadaniu i próbie poprawy klasyfikatorów k-NN, drzew klasyfikacyjnych
+oraz naiwnego klasyfikatora bayesowskiego, spróbujemy wykorzystać komitety klasyfikatorów. Rozpoczniemy od metody bagging.
+
+<<>>=
+randomForest::
+@
+
 
 
 

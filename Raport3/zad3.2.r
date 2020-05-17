@@ -42,4 +42,13 @@ rpart.plot(tree)
 
 tree$variable.importance / sum(tree$variable.importance)
 
+#Naiwny klasyfikator bayesowski
 
+library(ggcorrplot)
+
+cor(Glass)
+ggcorrplot()
+
+?cor
+correlation_matrix <- cor(subset(Glass, select=-c(Type, RI, Mg, Al)))
+ggcorrplot(correlation_matrix, lab=T, type="lower")
