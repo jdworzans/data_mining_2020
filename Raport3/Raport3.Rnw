@@ -311,7 +311,7 @@ oraz sprawdzianu krzyżowego typu leave-one-out
 (\emph{5-, 10-, leave-one-out Cross Validation}).
 Ponadto, wykorzystamy metodę \emph{bootstrap} oraz \emph{632+}.
 
-Wykorzystamy do tego następujące funkcje pomocnicze,
+Zastosujemy do tego następujące funkcje pomocnicze,
 odpowiadające za uczenie modelu oraz estymację błędów.
 
 <<funkcje.pomocnicze>>=
