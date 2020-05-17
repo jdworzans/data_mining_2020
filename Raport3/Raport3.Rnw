@@ -519,7 +519,7 @@ kable(
 
 
 W tabeli \ref{tab:przyciete.drzewo} widzimy, że przycięcie drzewa za pomocą
-metody 1 odchylenia standardowego pozwala nie zmienia znacząco wyników.
+metody 1 odchylenia standardowego nie zmienia znacząco wyników.
 Możemy jednak przypuszczać, że przycięte drzewo ma lepsze właściwości
 uogólniające.
 
@@ -551,7 +551,7 @@ wyniki["drzewo1.przyciete"] <- nasz.errorest(
   Type ~ RI + Al + Ca, Glass, nasze.drzewo
 )
 wyniki["drzewo2.przyciete"] <- nasz.errorest(
-  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo()
+  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo
 )
 
 wyniki
