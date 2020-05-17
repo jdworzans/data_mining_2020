@@ -262,35 +262,6 @@ library(adabag)
 
 \section{Porównanie metod klasyfikacji}
 
-\subsection{Opis danych}
-<<echo=FALSE>>=
-data(Glass)
-str(Glass)
-# more info:
-# https://archive.ics.uci.edu/ml/datasets/glass+identification
-# 1. Id number: 1 to 214
-# 2. RI: refractive index
-# (unit measurement: weight percent in corresponding oxide, as are attributes 4-10)
-# 3. Na: Sodium 
-# 4. Mg: Magnesium
-# 5. Al: Aluminum
-# 6. Si: Silicon
-# 7. K: Potassium
-# 8. Ca: Calcium
-# 9. Ba: Barium
-# 10. Fe: Iron
-# 11. Type of glass: (class attribute)
-# -- 1 building_windows_float_processed
-# -- 2 building_windows_non_float_processed
-# -- 3 vehicle_windows_float_processed
-# -- 4 vehicle_windows_non_float_processed (none in this database)
-# -- 5 containers
-# -- 6 tableware
-# -- 7 headlamps
-@
-
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Krótki opis zagadnienia}
 
@@ -302,16 +273,36 @@ kable(head(Glass), caption="Przykładowe dane", format="latex")
 head(Glass)
 @
 
+% https://archive.ics.uci.edu/ml/datasets/glass+identification
 
 Dane składają się z informacji, dotyczących 214 odłamków.
 Każdy z rekordów składa się ze współczynnika załamania światła ({\verb+RI+})
 oraz stężenia różnych pierwiastków (w odpowiadających tlenkach)
 w badanych próbkach.
 Oprócz tego, posiadamy informacje o typie szkła,
-którego 
-Łącznie, dla każdej próbki występuje 13 cech.
+z którego odłamkiem mamy do czynienia.
+Razem, mamy 7 takich kas, z których tylko 6 występuje w danych.
+Łącznie, dla każdej próbki występuje 10 cech.
 Ponadto, w zbiorze nie ma wartości brakujących.
 
+Naszym celem będzie konstrukcja klasyfikatora, który będzie
+przyporządkowywał odłamki szkła do odpowiednich klas.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Opis eksperymentów/analiz}
+
+Skorzystamy z najczęściej stosowanych, podstawowych metod.
+Będą to metoda k-najbliższych sąsiadów (k-NN, \emph{k-Nearest Neighbours}),
+naiwny klasyfikator bayesowski (NBC, \emph{Naive Bayesian Classifier}) oraz
+drzewo klasyfikacyjne (\emph{classification tree}).
+
+Ponadto, postaramy się dobrać odpowiednie parametry dla tych modeli.
+Spróbujemy również dokonać pewnych przekształceń danych, czy też
+wybrać pewne podzbiory cech, aby sprawdzić, czy uda nam się w ten
+sposób poprawić jakość klasyfikatora.
+
+Po zbadaniu podstawowych metod, spróbujemy również porównać
+je z metodami bardziej zaawansowanymi i wyrafinowanymi.
 
 Aby ocenić jakość predykcji, będziemy korzystać
 z 5-, 10-krotnego sprawdzianu krzyżowego
@@ -358,14 +349,6 @@ nasz.errorest <- function(formula, data, model, ...){
   ))
 }
 @
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Opis eksperymentów/analiz}
-
-Na pewno:
-k-NN
-drzewka
-naiwny klasyfikator bayesowski
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
