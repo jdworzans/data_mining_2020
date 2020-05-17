@@ -47,7 +47,7 @@ library(ggplot2)
 library(varhandle)
 @
 
-\subsection{Krótki opis zagadnienia.}
+
 \subsection{Krótki opis zagadnienia}
 W tej sekcji będziemy zajmować się klasyfikacją opartą na modelu regresji liniowej, z wykorzystaniem metody najmniejszych kwadratów.
 Analizy dokonujemy na zbiorze danych \textit{iris}:
@@ -80,11 +80,8 @@ Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 
 \subsection{Wyniki}
 
-<<<<<<< HEAD
 Na podstawie wykresu widzimy, iż poszczególne klasy zwierają tyle samo obiektów:
-=======
-Na podstawie wykresu \ref{fig:klasy} widzimy, że obiekty są uporządkowane ze względu na przynależność do danej klasy:
->>>>>>> a6698342bdea2e4271164630bc352bd21b953843
+
 <<klasy, echo=FALSE, fig.cap="Przynależności do klas.">>=
 ggplot(data=iris, aes(x=Species)) + 
   geom_bar() + labs(x="gatunek", y="liczebność gatunku")
@@ -97,7 +94,7 @@ Dokonujemy podziału zbioru danych na trengingowe oraz testowe:
 smp_size <- floor(0.8 * nrow(iris))
 set.seed(43)
 train_ind <- sample(seq_len(nrow(iris)), size=smp_size)
-
+# pamiętamy, żeby uwzględnić wyraz wolny w modelu regresji
 X_train <- cbind(rep(1,120),iris[train_ind, 1:4])
 X_test <- cbind(rep(1,30),iris[-train_ind, 1:4])
 Y_train <- iris[train_ind, 5]
@@ -226,7 +223,7 @@ kable(conf_mtrx.train.n, caption="Skuteczność nowego estymatora na zbiorze tre
       format="latex")
 @
 
-Otrzymujemy zgodność na poziomie 96\%, zatem wnioskujemy, że model nie jest przetrenowany.
+Otrzymujemy zgodność na poziomie 98\%.
 
 <<resutl_train_new_plot, echo=FALSE, fig.height=6, fig.width=8>>=
 matplot(Y_result_n, ylab="Predykcja")
@@ -235,7 +232,7 @@ legend(x="top", legend=paste(1:3,levels(Species)), col=1:3, text.col=1:3)
 @
 
 
-\subsection{Podsumowanie.}
+\subsection{Podsumowanie}
 \begin{itemize}
 \item Po przeprowadzeniu analiz wnioskujemy, iż model oparty na regresji liniowej jest skuteczny, kiedy zależności między zmiennymi są liniowe. Jak wiadomo, zazwyczaj jednak mamy styczność ze zmiennymi o zależnościach nieliniowych, gdzie estymator regresji może dawać niesatysfakcjonujące rezultaty. Widzimy, iż po dodaniu do zbioru danych cech wielomianowych stopnia 2, skuteczność klasyfikatora znacznie wzrasta
 \item Ponadto, kiedy tworzymy model klasyfikacyjny dla większej liczby klas, regresja liniowa jest narażona na problem maskowania klas, który również wpływa niekorzystnie na wyniki estymatora.
