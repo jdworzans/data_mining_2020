@@ -245,18 +245,21 @@ Podsumowując regresja liniowa zakłada, iż w zbiorze zmienne mają liniowe zal
 
 
 % Zad. 2
-<<>>=
+<<ustalenie.ziarna, echo=FALSE>>=
+set.seed(14052020)
+@
+
+<<biblioteki, echo=FALSE>>=
 library(mlbench)
 library(ipred)
 library(rpart)
-library(rpart.plot)
 library(e1071)
 @
 
 \section{Porównanie metod klasyfikacji}
 
 \subsection{Opis danych}
-<<>>=
+<<echo=FALSE>>=
 data(Glass)
 str(Glass)
 # more info:
@@ -339,11 +342,14 @@ nasz.errorest <- function(formula, data, model){
     predict=mypredict, estimator="632plus"
   )$error
   return(data.frame(
-    c(cv.5, cv.10, leave.one.out, bootstrap, err632plus),
+    paste0(
+      round(100*c(cv.5, cv.10, leave.one.out, bootstrap, err632plus), 2),
+      "%"
+    ),
     row.names=c(
-      "CV5", "CV10", "leave-one-out",
-      "bootstrap (25 replications)",
-      "632+ (25 replications)"
+      "CV5", "CV10", "CV leave-one-out",
+      "bootstrap (25 powtórzeń)",
+      "632+ (25 powtórzeń)"
     )
   ))
 }
@@ -368,10 +374,6 @@ Nasze badania rozpoczniemy od estymacji błędu klasyfikacji dla modeli
 z domyślnymi parametrami i bez wcześniejszych przekształceń danych.
 Pozwoli to nam później ocenić ewentualną poprawę wyników.
 
-<<ustalenie.ziarna, echo=FALSE>>=
-set.seed(14052020)
-@
-
 <<surowe.porowananie.pokaz, eval=FALSE>>=
 wyniki <- nasz.errorest(Type ~ ., Glass, ipredknn)
 wyniki["drzewo"] <- nasz.errorest(Type ~ ., Glass, rpart)
@@ -380,8 +382,9 @@ wyniki["nb"] <- nasz.errorest(Type ~ ., Glass, naiveBayes)
 wyniki
 @
 
-<<surowe.porownanie, echo=FALSE>>=
+<<surowe.porownanie, echo=FALSE, cache=TRUE>>=
 wyniki <- nasz.errorest(Type ~ ., Glass, ipredknn)
+names(wyniki) <- c("k.nn")
 wyniki["drzewo"] <- nasz.errorest(Type ~ ., Glass, rpart)
 wyniki["nb"] <- nasz.errorest(Type ~ ., Glass, naiveBayes)
 
@@ -390,7 +393,8 @@ kable(
   format="latex",
   col.names=c("k-NN", "drzewo klasyfikacyjne", "naiwny klasyfikator bayesowski"),
   caption="Porównanie błędu klasyfikacji dla modeli z domyślnymi parametrami.",
-  digits=2
+  digits=2,
+  align="r"
 )
 @
 
@@ -399,9 +403,56 @@ z całymi danymi najlepiej radzą sobie metoda k-najbliższych sąsiadów oraz
 drzewa klasyfikacyjne. Można również zauważyć, że naiwny klasyifkator bayesowski
 zadziałał w tym przypadku zdecydowanie gorzej.
 
+Postaramy się znaleźć odpowiednie podzbiory cech oraz parametry dla poszczególnych
+modeli, aby poprawić otrzymane rezultaty.
+
+\subsubsection{Analiza opisowa}
 
 
 \subsubsection{Metoda k-najbliższych sąsiadów}
+
+\subsubsection{Drzewo klasyfikacyjne}
+Skorzystamy z metody jednego odchylenia standardowego,
+przedstawionej na wykładzie, aby zmniejszać złożoność
+drzewa po uczeniu.
+<<przyciete.drzewo.pokaz, eval=FALSE>>=
+nasze.drzewo <- function(...){
+  drzewo <- rpart(..., minsplit=1)
+  cptable <- data.frame(drzewo$cptable)
+  xerror.min <- min(cptable$xerror)
+  xstd.min <- max(cptable[which(cptable$xerror == xerror.min),]$xstd)
+  ponizej.1.sd <- cptable[which(cptable$xerror < xerror.min + xstd.min),]$CP
+  return(prune(drzewo, cp=max(ponizej.1.sd)))
+}
+wyniki["przyciete.drzewo"] <- nasz.errorest(Type ~ ., Glass, nasze.drzewo)
+wyniki[c("drzewo", "przyciete.drzewo")]
+@
+
+<<przyciete.drzewo, echo=FALSE, cache=TRUE>>=
+nasze.drzewo <- function(...){
+  drzewo <- rpart(..., minsplit=1)
+  cptable <- data.frame(drzewo$cptable)
+  xerror.min <- min(cptable$xerror)
+  xstd.min <- max(cptable[which(cptable$xerror == xerror.min),]$xstd)
+  ponizej.1.sd <- cptable[which(cptable$xerror < xerror.min + xstd.min),]$CP
+  return(prune(drzewo, cp=max(ponizej.1.sd)))
+}
+wyniki["przyciete.drzewo"] <- nasz.errorest(Type ~ ., Glass, nasze.drzewo)
+kable(
+  wyniki[c("drzewo", "przyciete.drzewo")],
+  col.names=c("drzewo", "przycięte drzewo"),
+  format="latex",
+  caption="Sprawdzenie poprawy błędu klasyfikacji po przycięciu drzewa."
+)
+@
+
+
+W tabeli \ref{tab:przyciete.drzewo} widzimy, że przycięcie drzewa za pomocą
+metody 1 odchylenia standardowego pozwala nie zmienia znacząco wyników.
+Możemy jednak przypuszczać, że przycięte drzewo ma lepsze właściwości
+uogólniające.
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
