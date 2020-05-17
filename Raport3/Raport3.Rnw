@@ -47,7 +47,7 @@ library(ggplot2)
 library(varhandle)
 @
 
-\subsection{Krótki opis zagadnienia.}
+\subsection{Krótki opis zagadnienia}
 W tej sekcji będziemy zajmować się klasyfikacją opartą na modelu regresji liniowej, z wykorzystaniem metody najmniejszych kwadratów.
 Analizy dokonujemy na zbiorze danych \textit{iris}:
 
