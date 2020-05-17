@@ -479,6 +479,8 @@ W tabeli \ref{tab:knn.k.pca} widzimy, że po redukcji danych do 4 pierwszych
 głównych składowych (wyjaśniają one około 80\% wariancji), wyniki są porównywalne
 z tymi bez redukcji danych.
 
+Widzimy zatem, że najlepsze wyniki dla metody k-NN otrzymaliśmy dla k=1.
+
 
 \subsubsection{Drzewo klasyfikacyjne}
 Skorzystamy z metody jednego odchylenia standardowego,
