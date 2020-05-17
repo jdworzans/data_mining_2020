@@ -77,7 +77,7 @@ Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 \item Ostatecznie badamy wpływ składników wielomianowych stopnia 2 na dokładność modelu regresji liniowej, dodając do zbioru danych cechę Petal.Length$^2$ oraz Petal.Width$*$Sepal.Length.
 \end{itemize}
 
-\subsection{Wyniki.}
+\subsection{Wyniki}
 
 Na podstawie wykresu widzimy, że obiekty są uporządkowane ze względu na przynależność do danej klasy:
 <<klasy, echo=FALSE, fig.cap="Przynależności do klas.">>=
