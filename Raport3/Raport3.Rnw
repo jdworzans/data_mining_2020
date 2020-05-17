@@ -68,7 +68,7 @@ Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
 \item wpływ składników wielomianowych stopnia 2 na dokładność klasyfikacji.
 \end{itemize}
 
-\subsection{Opis eksperymentów/analiz.}
+\subsection{Opis eksperymentów/analiz}
 
 \begin{itemize}
 \item W pierwszym kroku, budując model klasyfikacyjny, dokonujemy podziału zbioru danych na treningowy oraz testowy w stosunku 1:5. 
