@@ -264,7 +264,7 @@ library(randomForest)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Krótki opis zagadnienia}
 
-W tym ćwiczeniu, mamy do czynienia ze zbiorem danych o odłamkach szkła.
+W tym ćwiczeniu, będziemy korzystali ze zbioru danych o odłamkach szkła.
 <<przykladowe_dane, echo=FALSE>>=
 data(Glass)
 kable(head(Glass), caption="Przykładowe dane", format="latex")
