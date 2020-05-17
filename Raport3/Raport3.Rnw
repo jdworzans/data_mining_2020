@@ -249,7 +249,7 @@ Podsumowując regresja liniowa zakłada, iż w zbiorze zmienne mają liniowe zal
 set.seed(14052020)
 @
 
-<<biblioteki, echo=FALSE>>=
+<<biblioteki, echo=FALSE, eval=TRUE, warning=FALSE, results=FALSE, message=FALSE>>=
 library(mlbench)
 library(ipred)
 library(rpart)
@@ -257,7 +257,6 @@ library(e1071)
 library(purrr)
 library(naivebayes)
 library(randomForest)
-library(adabag)
 @
 
 \section{Porównanie metod klasyfikacji}
@@ -267,9 +266,11 @@ library(adabag)
 
 W tym ćwiczeniu, mamy do czynienia ze zbiorem danych o odłamkach szkła.
 <<przykladowe_dane, echo=FALSE>>=
+data(Glass)
 kable(head(Glass), caption="Przykładowe dane", format="latex")
 @
 <<przykladowe_dane_pokaz ,eval=FALSE>>=
+data(Glass)
 head(Glass)
 @
 
@@ -353,8 +354,6 @@ nasz.errorest <- function(formula, data, model, ...){
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Wyniki}
-
-W tej części zamieszczamy uzyskane wyniki, w szczególności fragmenty R-kodów wraz z tabelami i wykresami.
 
 \subsubsection{Modele z domyślnymi wartościami dla wszystkich cech}
 Nasze badania rozpoczniemy od estymacji błędu klasyfikacji dla modeli
@@ -610,7 +609,8 @@ znaczną poprawę wyników.
 
 \subsubsection{Komitety klasyfikatorów}
 Po zbadaniu i próbie poprawy klasyfikatorów k-NN, drzew klasyfikacyjnych
-oraz naiwnego klasyfikatora bayesowskiego, spróbujemy wykorzystać komitety klasyfikatorów.
+oraz naiwnego klasyfikatora bayesowskiego, spróbujemy wykorzystać komitety klasyfikatorów,
+aby sprawdzić, czy otrzymamy w ten sposób porównywalne wyniki.
 
 Wykorzystamy w tym celu las losowy.
 
@@ -618,26 +618,51 @@ Wykorzystamy w tym celu las losowy.
 wyniki["random.forest"] <- nasz.errorest(Type~., Glass, randomForest)
 wyniki
 @
+
 <<random.forest, echo=FALSE, cache=TRUE>>=
 wyniki["random.forest"] <- nasz.errorest(Type~., Glass, randomForest)
 kable(
   wyniki[c("nb.kernel", "k.nn.1", "drzewo2.przyciete", "random.forest")],
   col.names=c("NBC", "k-NN", "drzewo klasyfikacyjne", "las losowy"),
-  format="latex"
+  format="latex",
+  caption="Porównanie najlepszych wyników"
 )
 @
 
 W tabeli \ref{tab:random.forest} widzimy, że, nawet dla domyślnych parametrów, las losowy
 poradził sobie z danymi najlepiej spośród przygotowanych przez nas klasyfikatorów.
+Stąd, możemy przypuszczać, że poprawa parametrów, mogłaby jeszcze bardziej zwiększyć
+różnicę między tymi klasyfikatorami.
 
 
+\subsection{Podsumowanie}
+
+Udało nam się skonstruować działające klasyfikatory.
+Warto zaznaczyć, że klasyfikator, który wskazywałby losową klasę,
+miałby błąd predykcji na poziomie 83\%, natomiast taki,
+który wskazywałby zawsze klasę 2 (najliczniejszą), mógłby osiągnąć
+błąd na poziomie 64\%.
+
+Nam, natomiast, udało się osiągnąć błąd predykcji rzędu 20\%, co
+wydaje się być dość dobrym wynikiem.
+
+Ponadto, dla każdego z podstawowych klasyfikatorów, udało nam się
+poprawić jego jakość. Wykorzystaliśmy do tego zmianę parametrów,
+ale też redukcję wymiaru, czy też ilości cech. Ponadto korzystaliśmy
+z metod, które zapobiegają przeuczeniu modelu, takich jak przycinanie
+drzewa.
+
+Spośród najprostszych klasyfikatorów, najlepsze rezultaty otrzymaliśmy
+dla metody k-najbliższych sąsiadów. Wyniki dla drzewa klasyfikacyjnego były
+nieznacznie gorsze. Nie udało nam się jednak zbliżyć do tych wyników dla
+naiwnego klasyfikatora bayesowskiego. Możemy przypuszczać, że jest to związane
+z tym, że mamy do czynienia przede wszystkim z cechami ciągłymi, których rozkłady
+nie są znane.
+
+Na zakończenie, należy zapamiętać, że korzystając z nowszych, bardziej
+zaawansowanych i wyrafinowanych algorytmów, takich jak las losowy, byliśmy
+w stanie osiągnąć rewelacyjne rezultaty, które są zdecydowanie lepsze
+niż wyniki dla podstawowych klasyfikatorów.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Podsumowanie}
-Najważniejsze wnioski, jakie udało się wysnuć na podstawie przeprowadzonych analiz/eksperymentów. Wnioski mogą być wypunktowane, tzn.:
-
-
-
-Można by zacytować zbióóóóóóóóór danych
 \end{document}
