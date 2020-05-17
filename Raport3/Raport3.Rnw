@@ -256,6 +256,8 @@ library(rpart)
 library(e1071)
 library(purrr)
 library(naivebayes)
+library(randomForest)
+library(adabag)
 @
 
 \section{Porównanie metod klasyfikacji}
@@ -625,11 +627,25 @@ znaczną poprawę wyników.
 
 \subsubsection{Komitety klasyfikatorów}
 Po zbadaniu i próbie poprawy klasyfikatorów k-NN, drzew klasyfikacyjnych
-oraz naiwnego klasyfikatora bayesowskiego, spróbujemy wykorzystać komitety klasyfikatorów. Rozpoczniemy od metody bagging.
+oraz naiwnego klasyfikatora bayesowskiego, spróbujemy wykorzystać komitety klasyfikatorów.
 
-<<>>=
-randomForest::
+Wykorzystamy w tym celu las losowy.
+
+<<random.forest.pokaz, eval=FALSE>>=
+wyniki["random.forest"] <- nasz.errorest(Type~., Glass, randomForest)
+wyniki
 @
+<<random.forest, echo=FALSE, cache=TRUE>>=
+wyniki["random.forest"] <- nasz.errorest(Type~., Glass, randomForest)
+kable(
+  wyniki[c("nb.kernel", "k.nn.1", "drzewo2.przyciete", "random.forest")],
+  col.names=c("NBC", "k-NN", "drzewo klasyfikacyjne", "las losowy"),
+  format="latex"
+)
+@
+
+W tabeli \ref{tab:random.forest} widzimy, że, nawet dla domyślnych parametrów, las losowy
+poradził sobie z danymi najlepiej spośród przygotowanych przez nas klasyfikatorów.
 
 
 
