@@ -19,8 +19,7 @@ opts_chunk$set(
   fig.align='center',
   fig.pos='H',
   fig.width=5,
-  fig.height=4
-)
+  fig.height=4)
 @
 
 
@@ -41,9 +40,194 @@ opts_chunk$set(
 
 % Zad. 1
 \section{Klasyfikacja na bazie modelu regresji liniowej}
-\subsection{}
-\subsubsection{}
-\subsection{}
+
+<<>>=
+library(datasets)
+library(ggplot2)
+library(varhandle)
+@
+
+\subsection{Krótki opis zagadnienia.}
+W tej sekcji będziemy zajmować się klasyfikacją opartą na modelu regresji liniowej, z wykorzystaniem metody najmniejszych kwadratów.
+Analizy dokonujemy na zbiorze danych \textit{iris}:
+
+<<echo=FALSE>>=
+data(iris)
+attach(iris)
+head(iris)
+@
+
+Zbiór danych zawiera 150 wierszy z informacjami na temat 3 gatunków irysów: setosa, versicolor i virginica. Zmienne dostarczają nam wiedzy o szerokości i długości działki kielicha oraz płatka.
+Dane nie zawierają obserwacji brakujących. \\
+Po dokonaniu analizy postaramy się odpowiedzieć na pytania o:
+\begin{itemize}
+\item skuteczność klasyfikacji opartej na modelu regresji liniowej;
+\item wpływ ilości klas na jakość predykcji;
+\item maskowanie klas;
+\item wpływ składników wielomianowych stopnia 2 na dokładność klasyfikacji.
+\end{itemize}
+
+\subsection{Opis eksperymentów/analiz.}
+
+\begin{itemize}
+\item W pierwszym kroku, budując model klasyfikacyjny, dokonujemy podziału zbioru danych na treningowy oraz testowy w stosunku 1:5. 
+\item Następnie na podstawie danych uczących kostruujemy klasyfikator i predykujemy etykiety dla zbioru treningowego i testowego.
+\item Potem dokonujemy oceny jakości modelu, wyznaczamy macierz pomyłek, przeprowadzamy analizę graficzną klasyfikatora.
+\item Ostatecznie badamy wpływ składników wielomianowych stopnia 2 na dokładność modelu regresji liniowej, dodając do zbioru danych cechę Petal.Length$^2$ oraz Petal.Width$*$Sepal.Length.
+\end{itemize}
+
+\subsection{Wyniki.}
+
+Na podstawie wykresu widzimy, że obiekty są uporządkowane ze względu na przynależność do danej klasy:
+<<klasy, echo=FALSE, fig.cap="Przynależności do klas.">>=
+ggplot(data=iris, aes(x=Species)) + 
+  geom_bar() + labs(x="gatunek", y="liczebność gatunku")
+@
+
+\subsubsection{Analiza skuteczności modelu dla zbioru danych bez składników wielomianowych stopnia 2.}
+Dokonujemy podziału zbioru danych na trengingowe oraz testowe:
+
+<<train_test_split>>=
+smp_size <- floor(0.8 * nrow(iris))
+set.seed(43)
+train_ind <- sample(seq_len(nrow(iris)), size=smp_size)
+
+X_train <- cbind(rep(1,120),iris[train_ind, 1:4])
+X_test <- cbind(rep(1,30),iris[-train_ind, 1:4])
+Y_train <- iris[train_ind, 5]
+Y_test <- iris[-train_ind, 5]
+@
+
+
+Konwertujemy zmienną kategoryczną na macierz wskaźnikową z wykorzystaniem funkcji \textit{to.dummy} z pakietu \textit{varhandle}:
+<<konwersja>>=
+Y_train_bin <- to.dummy(Y_train, prefix="species")
+Y_test_bin <- to.dummy(Y_test, prefix="species")
+@
+
+Konstrujujemy klasyfikator regresji liniowej metodą najmniejszych kwadratów:
+
+<<classifier>>=
+B <- solve(t(X_train)%*%as.matrix(X_train)) %*% t(X_train) %*% as.matrix(Y_train_bin)
+@
+Dla zbioru testowego otrzymujemy następujące wyniki: \ref{tab:result_test}.
+
+<<result_test, echo=FALSE>>=
+Y_result <- as.matrix(X_test) %*% B
+klasy <- levels(Species)
+  maks.ind <- apply(Y_result, 1, FUN=function(x) which.max(x))
+  prognozowane.etykietki <- klasy[maks.ind]
+  rzeczywiste.etykietki <- Y_test
+  
+  conf_mtrx <- table(rzeczywiste.etykietki, prognozowane.etykietki)
+  rownames(conf_mtrx) <- c("setosa.true", "versicolor.true", "virginica.true")
+  kable(conf_mtrx,caption="Skuteczność estymatora dla danych testowych.", 
+        format="latex")
+  #sum(diag(conf_mtrx))/length(Y_test)
+@
+Dostajemy dokładność na poziomie: 73\%. \\
+<<result_test_plot, echo=FALSE, fig.cap="Wizualizacja wyników dla zbioru testowego.", fig.height=6, fig.width=8>>=
+matplot(Y_result, ylab="Predykcja")
+  abline(v=c(10,20), lty=2, col="grey")
+  legend(x="top", legend=paste(1:3,levels(Species)), col=1:3, text.col=1:3)
+@
+Na wykresie \ref{fig:result_test_plot} widzimy, że dominują klasy setosa i virginica, zatem wnioskujemy, iż versicolor jest zamaskowana (zdominowana) przez pozostałe dwie klasy. \\
+Następnie dokonujemy analizy zgodności dla zbioru treningowego w celu uniknięcia przetrenowania modelu. Otrzymujemy następujące rezultaty: \ref{tab:result_train}.
+
+<<result_train, echo=FALSE>>=
+Y_result.train <- as.matrix(X_train) %*% B
+
+maks.ind.train <- apply(Y_result.train, 1, FUN=function(x) which.max(x))
+prognozowane.etykietki.train <- klasy[maks.ind.train]
+rzeczywiste.etykietki.train <- Y_train
+
+conf_mtrx.train <- table(rzeczywiste.etykietki.train, prognozowane.etykietki.train)
+rownames(conf_mtrx.train) <- c("setosa.true", "versicolor.true", "virginica.true")
+
+kable(conf_mtrx.train, caption="Skuteczność estymatora dla danych treningowych.", 
+      format="latex")
+#sum(diag(conf_mtrx.train))/length(Y_train)
+@
+Dostajemy zgodność na poziomie: 88\%, co mogłoby wskazywać na to, iż model jest przetrenowany. Aby uniknąć takiej sytuacji, w dalszej analizie należałoby przeprowadzić np. cross validation test, który dałby nam rzetelniejsze wyniki dla całego zbioru danych. Również fakt, iż w zbiorze nie mamy wielu rekordów, działa niekorzystnie na skuteczność modelu regresji. \\
+Wyniki przedstawione graficznie:
+<<result_train_plot, echo=FALSE, fig.cap="Wizualizacja wyników dla zbioru treningowego.", fig.height=6, fig.width=8>>=
+matplot(Y_result.train, ylab="Predykcja")
+  abline(v=c(40,80), lty=2, col="grey")
+  legend(x="top", legend=paste(1:3,levels(Species)), col=1:3, text.col=1:3)
+@
+
+\subsubsection{Analiza skuteczności modelu dla zbioru danych ze składnikami wielomianowymi stopnia 2.}
+Do konstrukcji drugiego modelu regresji wykorzystujemy zbiór z wyjściowymi cechami oraz zmiennymi \textit{Petal.Length}$^2$ oraz \textit{Petal.Width}$*$\textit{Sepal.Length}. 
+<<new_dataset, echo=FALSE>>=
+  new_iris <- cbind(Petal.Length^2, Petal.Width*Sepal.Length, iris)
+
+X_train_n <- cbind(rep(1,120),new_iris[train_ind, 1:6])
+X_test_n <- cbind(rep(1,30),new_iris[-train_ind, 1:6])
+Y_train_n <- new_iris[train_ind, 7]
+Y_test_n <- new_iris[-train_ind, 7]
+
+# konwersja zmiennej kategorycznej na macierz wskaźnikową:
+Y_train_bin_n <- to.dummy(Y_train_n, prefix="species")
+Y_test_bin_n <- to.dummy(Y_test_n, prefix="species")
+
+# konstrukcja klasyfikatora regresji liniowej metodą najmniejszych kwadratów:
+B1 <- solve(t(X_train_n)%*%as.matrix(X_train_n)) %*% t(X_train_n) %*% as.matrix(Y_train_bin_n)
+
+# wartości progonozowane:
+Y_result_n <- as.matrix(X_test_n) %*% B1
+@
+
+Dla estymatora, skonstruowanego w oparciu o nowy zbiór danych, dla zbioru testowego otzymujemy następujące wyniki: \ref{tab:result_test_new}.
+
+<<result_test_new, echo=FALSE>>=
+maks.ind.n <- apply(Y_result_n, 1, FUN=function(x) which.max(x))
+prognozowane.etykietki.n <- klasy[maks.ind.n]
+rzeczywiste.etykietki.n <- Y_test_n
+
+conf_mtrx_n <- table(rzeczywiste.etykietki.n, prognozowane.etykietki.n)
+rownames(conf_mtrx_n) <- c("setosa.true", "versicolor.true", "virginica.true")
+kable(conf_mtrx_n, caption="Skuteczność nowego estymatora dla zbioru testowego.",format="latex")
+@
+
+Dostajemy zgodność na poziomie: 97\%, zatem otrzymujemy znacznie skuteczniejszy estymator dla zbioru danych ze składnikami wielomianowymi stopnia 2. 
+
+<<result_test_new_plot, echo=FALSE, fig.cap="Wizualizacja wyników nowego estymatora dla zbioru testowego.", fig.height=6, fig.width=8>>=
+matplot(Y_result_n, ylab="Predykcja")
+abline(v=c(10,20), lty=2, col="grey")
+legend(x="top", legend=paste(1:3,levels(Species)), col=1:3, text.col=1:3)
+@
+Na podstawie wykresu \ref{fig:result_test_new_plot} zauważamy, że dla nowego zbioru danych, klasy setosa oraz virginica nie dominują w sposób znaczny klasy versicolor. Wnioskujemy, że z tego też względu otrzymujemy znacznie lepszy rezultat dla modelu regresji. \\
+Zbadamy jeszcze skuteczność estymatora dla zbioru treningowego: \ref{tab:result_train_new}.
+
+<<result_train_new, echo=FALSE>>=
+Y_result.train.n <- as.matrix(X_train_n) %*% B1
+
+maks.ind.train.n <- apply(Y_result.train.n, 1, FUN=function(x) which.max(x))
+prognozowane.etykietki.train.n <- klasy[maks.ind.train.n]
+rzeczywiste.etykietki.train.n <- Y_train_n
+
+conf_mtrx.train.n <- table(rzeczywiste.etykietki.train.n, prognozowane.etykietki.train.n)
+rownames(conf_mtrx.train.n) <- c("setosa.true", "versicolor.true", "virginica.true")
+kable(conf_mtrx.train.n, caption="Skuteczność nowego estymatora na zbiorze treningowym.", 
+      format="latex")
+@
+
+Otrzymujemy zgodność na poziomie 96\%, zatem wnioskujemy, że model nie jest przetrenowany.
+
+<<resutl_train_new_plot, echo=FALSE, fig.height=6, fig.width=8>>=
+matplot(Y_result_n, ylab="Predykcja")
+abline(v=c(40,80), lty=2, col="grey")
+legend(x="top", legend=paste(1:3,levels(Species)), col=1:3, text.col=1:3)
+@
+
+
+\subsection{Podsumowanie.}
+\begin{itemize}
+\item Po przeprowadzeniu analiz wnioskujemy, iż model oparty na regresji liniowej jest skuteczny, kiedy zależności między zmiennymi są liniowe. Jak wiadomo, zazwyczaj jednak mamy styczność ze zmiennymi o zależnościach nieliniowych, gdzie estymator regresji może dawać niesatysfakcjonujące rezultaty. Widzimy, iż po dodaniu do zbioru danych cech wielomianowych stopnia 2, skuteczność klasyfikatora znacznie wzrasta
+\item Ponadto, kiedy tworzymy model klasyfikacyjny dla większej liczby klas, regresja liniowa jest narażona na problem maskowania klas, który również wpływa niekorzystnie na wyniki estymatora.
+\item Tworząc model regresji należy pamiętać o zapobiaganiu jego przetrenowania wykorzystując metody takie, jak \textit{cross-validation}  lub \textit{bagging}.
+\end{itemize}
+Podsumowując regresja liniowa zakłada, iż w zbiorze zmienne mają liniowe zależności. Pracując nad bardziej złożonym problemem klasyfikacyjnym, dla dużej liczby klas, wybór odpowiednich składników wielomianowych może być czasochłonne, a przez to nieefektywne. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
