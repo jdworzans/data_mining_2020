@@ -1,0 +1,346 @@
+\documentclass[12pt, a4paper]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% dodatkowe pakiety LaTeX'a
+\usepackage[OT4]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ustawienia globalne
+<<ustawienia_globalne, echo=FALSE, warning=FALSE>>=
+library(knitr)
+opts_chunk$set(
+  fig.path='figure/',
+  fig.align='center',
+  fig.pos='H',
+  fig.width=5,
+  fig.height=4)
+@
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% strona tytulowa
+
+
+\title{Raport nr 3}
+\author{Emilia Kowal [249716], Jakub Dworzański [249703]}
+\maketitle
+\tableofcontents
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Zad. 1
+\section{Zaawansowane metody klasyfikacji}
+
+
+\subsection{Krótki opis zagadnienia}
+
+
+\subsection{Opis eksperymentów/analiz}
+
+
+
+\subsection{Wyniki}
+
+
+
+\subsection{Podsumowanie}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Zad. 2
+
+<<biblioteki, echo=FALSE, eval=TRUE, warning=FALSE, results=FALSE, message=FALSE>>=
+library(mlbench)
+library(MASS)
+library(cluster)
+library(factoextra)
+library(ggplot2)
+library(e1071)
+library(clValid)
+library(mclust)
+@
+
+\section{Analiza skupień - algorytmy grupujące i hierarchiczne}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Krótki opis zagadnienia}
+
+W tej sekcji będziemy zajmować się analizą skupień z wykorzystaniem algorytmów grupujących oraz hierarchicznych. Analizy dokonujemy na zbiorze Glass z biblioteki datasets.
+<<przykladowe_dane, echo=FALSE>>=
+data(Glass)
+kable(head(Glass), caption="Przykładowe dane", format="latex")
+@
+<<przykladowe_dane_pokaz ,eval=FALSE>>=
+data(Glass)
+head(Glass)
+@
+
+% https://archive.ics.uci.edu/ml/datasets/glass+identification
+
+Dane (tabela: \ref{tab:przykladowe_dane}) składają się z informacji, dotyczących 214 odłamków.
+Każdy z rekordów składa się ze współczynnika załamania światła ({\verb+RI+})
+oraz stężenia różnych pierwiastków (w odpowiadających tlenkach)
+w badanych próbkach.
+Oprócz tego, posiadamy informacje o typie szkła,
+z którego odłamkiem mamy do czynienia.
+Razem, mamy 7 takich klas, z których tylko 6 występuje w danych.
+Łącznie, dla każdej próbki występuje 10 cech.
+Ponadto, w zbiorze nie ma wartości brakujących.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Opis eksperymentów/analiz}
+
+\begin{itemize}
+\item W pierwszym kroku zastosujemy algorytm grupujący PAM oraz algorytm hierarchiczny AGNES.
+\item Następnie zobrazujemy wyniki algorytmów grupujących wykorzystując wykresy rozrzutu. Aby przedstawić rezultaty na wykresie dwuwymiarowym, zastosujemy algorytm PCA.
+\item Dla algorytmów hierarchicznych porównamy dendrogramy dla różnych metod łączenia skupień.
+\item Ocenimy jakość grupowania z wykorzystaniem wskaźników zewnętrznych, takich jak macierz kontyngencji oraz wskaźników zewnętrznych, np. indeksu silhouette. 
+\item Następnie postaramy się dobrać optymalną liczbę klas dla zbioru danych Glass.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Wyniki}
+
+Usuwamy ze zbioru Glass zmienną grupującą Type, zawierającą etykietki klas.
+<<>>=
+glass.cechy <- Glass[, -10]
+glass.real.etykiety <- Glass[, 10]
+@
+
+Zbiór Glass zawiera 214 wierszy, zatem nie ma konieczności losowania podzbioru w celu zredukowania czasu działania algorytmów. \\
+Przed wyznaczeniem macierzy niepodobieństw nie standaryzujemy danych. Podczas analizy chemicznej, do rozstrzygnięcia o typie szkła, istotnym jest, który z pierwiastków dominuje w składzie. 
+Następnie wyznaczamy macierz niepodobieństw z metryką euklidesową dla nieustandaryzowanych danych.
+
+<<>>=
+diss.mtrx.glass <- daisy(glass.cechy)
+@
+
+Wizualizacja macierzy odmienności po uporządkowaniu dla cech ze zbioru \textit{Glass}:
+
+<<echo=FALSE, fig.cap="Macierz odmienności po uporządkowaniu">>=
+fviz_dist(diss.mtrx.glass, order = TRUE)
+@
+
+\subsubsection{Algorytm PAM (Partitioning Around Medoids)}
+
+W pierwszej kolejności do analizy skupień wykorzystamy algorytm grupujący PAM, przyjmując liczbę klas k=6 zgodną z rzeczywistymi etykietkami klas.
+
+<<>>=
+glass.pam <- pam(x=diss.mtrx.glass, diss=TRUE, k=6)
+@
+
+<<medoidy_pam_k_6, echo=FALSE>>=
+kable(t(glass.pam$medoids), format="latex", caption="Medoidy reprezentujące klastry dla k=6")
+@
+
+W tabeli \ref{tab:medoidy_pam_k_6} widzimy medoidy reprezentujące klastry dla 6 klas.
+
+Tworzymy wizualizację z wykorzystaniem algorytmu PCA za pomocą funkcji \textit{fviz\_cluster} z biblioteki \textit{factoextra}.
+
+<<clusters_vis_pam_6, echo=FALSE, fig.cap="Wizualizacja PAM z wykorzystaniem algorytmu PCA">>=
+glass.pam.original <- glass.pam
+glass.pam$data <- glass.cechy
+fviz_cluster(glass.pam) 
+@
+
+Skupiska nie są dobrze odseparowane. \\
+Skuteczność algorytmu PAM dla zbioru danych \textit{Glass} sprawdzimy również wizualizując wynik wskaźnika \textit{silhouette}.
+
+<<silhouette_pam_6, echo=FALSE, fig.cap="Wskaźnik silhouette dla algorytmu PAM">>=
+plot(glass.pam)
+@
+
+Zbadamy również poziom zgodności otrzymanych wyników z rzeczywistymi etykietami obiektów wykorzystując tabelę kontyngencji. Zgodnie z tabelą \ref{tab:tab.pam.6} dostajemy zgodność ok. 48%.
+
+<<tab.pam.6, echo=FALSE>>=
+cont_mtrx_pam6 <- table(glass.pam$clustering, glass.real.etykiety)
+kable(cont_mtrx_pam6, format="latex", caption="Tabela kontyngencji dla PAM i k=6")
+@
+
+Dla porównania wyznaczyliśmy również macierz kontyngencji dla danych ustandaryzowanych i otrzymaliśmy zgodność na poziomie ok. 43\% (tabela: \ref{tab.pam.s.6}), zatem o 5 punktów procentowych gorszą od wyniku dla danych nieustandaryzowanych. W związku z tym w dalszej części raportu pracujemy już tylko na zbiorze nieskalowanym. 
+ 
+<<tab.pam.s.6, echo=FALSE>>=
+glass.cechy.scaled <- scale(glass.cechy)
+diss.mtrx.glass.s <- daisy(glass.cechy.scaled)
+glass.pam.s <- pam(x=diss.mtrx.glass.s, diss=TRUE, k=6)
+cont_mtrx_pam6.s <- table(glass.pam.s$clustering, glass.real.etykiety)
+kable(cont_mtrx_pam6.s, format="latex", caption="Tabela kontyngencji dla PAM na danych ustandaryzowanych i k=6")
+@
+
+Następnie wyznaczyliśmy sugerowaną liczbę klas z pomocą algorytmu \textit{fviz\_nbclust} w oparciu o wskaźnik \textit{silhouette}.
+
+<<echo=FALSE, fig.cap="Sugerowana liczba klas dla algorytmu PAM">>=
+fviz_nbclust(glass.cechy, pam, method = "silhouette")
+@
+
+Dostajemy informację, iż optymalna liczba klas wynosi 3. Wnioskujemy, że niektóre typy szkła mogą mieć zbliżony skład, a w konsekwencji zostają przypisane do skupienia, gdzie poszczególne wyniki mają podobne właściwości. \\
+
+Powtarzamy analizę z wykorzystaniem algorytmu PAM tym razem dla 3 klas.
+
+<<echo=FALSE, fig.cap="PAM bez standaryzacji dla 3 klas.">>=
+glass.pam.3 <- pam(x=diss.mtrx.glass, diss=TRUE, k=3)
+plot(glass.pam.3)
+@
+
+Otrzymujemy następującą tabelę kontyngencji: \ref{tab:tab.pam.3} oraz poziom zgodności 50\%. 
+
+<<tab.pam.3, echo=FALSE>>=
+cont_mtrx_pam3 <- table(glass.pam.3$clustering, glass.real.etykiety)
+kable(cont_mtrx_pam3, format="latex", caption="Tabela kontyngencji dla PAM i k=3")
+matchClasses(cont_mtrx_pam3)
+@
+
+
+\subsubsection{Algorytm AGNES (Aglomerative Nesting)}
+
+W tej sekcji do analizy skupień wykorzystamy algorytm hierarchiczny AGNES. Wyniki działania przeanalizujemy dla różnych metod łączenia skupień. Na początku przyjmujemy rzeczywistą liczbę klas równą 6.
+
+<<agnes.sing.6>>=
+glass.agnes.single <- agnes(x=diss.mtrx.glass, diss=TRUE, method="single")
+@
+
+Dendrogram dla algorytmu AGNES z metodą \textit{single}.
+<<echo=FALSE, fig.cap="AGNES z metodą single dla k=6", fig.height=6, fig.width=7>>=
+fviz_dend(glass.agnes.single, k=6)
+@
+
+<<agnes.avg.6>>=
+glass.agnes.avg <- agnes(x=diss.mtrx.glass, diss=TRUE, method="average")
+@
+
+Dendrogram dla algorytmu AGNES z metodą \textit{average}.
+<<echo=FALSE, fig.cap="AGNES z metodą average dla k=6", fig.height=6, fig.width=7>>=
+fviz_dend(glass.agnes.avg, k=6)
+@
+
+<<agnes.complete.6>>=
+glass.agnes.complete <- agnes(x=diss.mtrx.glass, diss=TRUE, method="complete")
+@
+
+Dendrogram dla algorytmu AGNES z metodą \textit{complete}.
+<<echo=FALSE, fig.cap="AGNES z metodą complete dla k=6", fig.height=6, fig.width=7>>=
+fviz_dend(glass.agnes.complete, k=6)
+@
+
+<<agnes.ward.6>>=
+glass.agnes.ward <- agnes(x=diss.mtrx.glass, diss=TRUE, method="ward") 
+@
+
+Dendrogram dla algorytmu AGNES z metodą \textit{Warda}.
+<<echo=FALSE, fig.cap="AGNES z metodą Warda dla k=6", fig.height=6, fig.width=7>>=
+fviz_dend(glass.agnes.ward, k=6)
+@
+
+Na podstawie samych wykresów można wywnioskować, że najlepszy podział na skupienia wyznacza metoda \textit{Warda} oraz \textit{complete}. \\
+Hipotezę sprawdzimy wykorzystując wskaźnik wewnętrzny \textit{silhouette} i tabel kontyngencji oraz porównując wyniki wskaźników dla każdej z metod łączenia skupień.
+
+<<fig.cap="Wskaźnik silhouette dla metody single">>=
+cut.glass.agnes.sing <- cutree(glass.agnes.single, k=6)
+sil.glass.agnes.sing <- silhouette(cut.glass.agnes.sing, dist=diss.mtrx.glass)
+ fviz_silhouette(sil.glass.agnes.sing)
+@
+
+Macierz kontyngencji dla metody łączenia skupień \textit{single}: \ref{tab:tab.agnes.sing}. Otrzymujemy zgodność na poziomie: 37,38\%.
+
+<<tab.agnes.sing, echo=FALSE, warning=FALSE, message=FALSE>>=
+ tab.agnes.sing <- table(cut.glass.agnes.sing, glass.real.etykiety)
+ kable(tab.agnes.sing, format="latex", caption="Tabela kontyngencji dla metody single")
+ #matchClasses(tab.agnes.sing)
+@
+
+<<echo=FALSE, fig.cap="Wskaźnik silhouette dla metody average">>=
+cut.glass.agnes.avg <- cutree(glass.agnes.avg, k=6)
+sil.glass.agnes.avg <- silhouette(cut.glass.agnes.avg, dist=diss.mtrx.glass)
+  fviz_silhouette(sil.glass.agnes.avg)
+@
+
+Macierz kontyngencji dla metody łączenia skupień \textit{average}: \ref{tab:tab.agnes.avg}. Otrzymujemy zgodność na poziomie: 38.32 \%.
+
+<<tab.agnes.avg, echo=FALSE, warning=FALSE, message=FALSE>>=
+ tab.agnes.avg <- table(cut.glass.agnes.avg, glass.real.etykiety)
+  kable(tab.agnes.avg, format="latex", caption="Tabela kontyngencji dla metody average")
+ #matchClasses(tab.agnes.avg)
+@
+
+<<echo=FALSE, fig.cap="Wskaźnik silhouette dla metody complete">>=
+cut.glass.agnes.compl <- cutree(glass.agnes.complete, k=6)
+sil.glass.agnes.compl <- silhouette(cut.glass.agnes.compl, dist=diss.mtrx.glass)
+fviz_silhouette(sil.glass.agnes.compl)
+@
+
+Macierz kontyngencji dla metody łączenia skupień \textit{complete}: \ref{tab:tab.agnes.comp}. Otrzymujemy zgodność na poziomie: 50\%.
+
+<<tab.agnes.comp, echo=FALSE, warning=FALSE, message=FALSE>>=
+ tab.agnes.comp <- table(cut.glass.agnes.compl, glass.real.etykiety)
+ kable(tab.agnes.comp, format="latex", caption="Tabela kontyngencji dla metody complete")
+ #matchClasses(tab.agnes.comp)
+@
+
+<<echo=FALSE, fig.cap="Wskaźnik silhouette dla metody Warda">>=
+cut.glass.agnes.ward <- cutree(glass.agnes.ward, k=6)
+sil.glass.agnes.ward <- silhouette(cut.glass.agnes.ward, dist=diss.mtrx.glass)
+fviz_silhouette(sil.glass.agnes.ward)
+@
+
+Macierz kontyngencji dla metody łączenia skupień \textit{Warda}: \ref{tab:tab.agnes.ward}. Otrzymujemy zgodność na poziomie: 54.21 \%.
+
+<<tab.agnes.ward, echo=FALSE, warning=FALSE, message=FALSE>>=
+ tab.agnes.ward <- table(cut.glass.agnes.ward, glass.real.etykiety)
+ kable(tab.agnes.ward, format="latex", caption="Tabela kontyngencji dla metody Warda")
+ #matchClasses(tab.agnes.ward)
+@
+Na podstawie powyższej analizy zauważamy, że dla $k=6$ metoda \textit{Warda} uzyskuje osiąga lepsze wyniki dla wskaźnika zewnętrznego, natomiast metoda \textit{complete} powoduje, że klastry są bardziej zwarte i lepiej od siebie odseparowane.\\
+
+W celu dokładniejszej oceny jakości grupowania wykorzystamy bibliotekę \textit{clValid}. Zbadamy skuteczność algorytmów \textit{kmeans}, \textit{diana},  \textit{PAM}, \textit{agnes} oraz \textit{clara} dla klas $k=2,...,6$ \\
+Najpierw zajmiemy się wskaźnikami wewnętrznymi. Tabela \ref{tab:optimal.internal} zawiera informacje dotyczące algorytmów, dla których udało się osiągnąć najlepsze wyniki poszczególnych wskaźników.
+
+<<optimal.internal, echo=FALSE>>=
+metody <- c("pam", "agnes", "kmeans", "diana",  "clara")
+zakres <- 2:6
+
+internal.validation <- clValid(glass.cechy, nClust=zakres, clMethods=metody, validation="internal")
+#summary(internal.validation)
+kable(optimalScores(internal.validation), format="latex", caption="Algorytmy, dla których wskaźniki wewnętrzne są optymalne") 
+@
+
+<<internal.plots, echo=FALSE,fig.height=9, fig.width=7, fig.cap="Porównanie skuteczności algorytmów w zależności od liczby klas">>=
+par(mfrow = c(3, 1))
+plot(internal.validation, lwd=2)
+@
+
+Następnie zbadamy skuteczność algorytmów na wskaźnikach stabilności. Tabela \ref{tab:optimal.stability} zawiera informacje na temat algorytmów, które osiągają najlepsze wyniki dla poszczególnych wskaźników stabilności.
+
+<<optimal.stability, echo=FALSE>>=
+stability.validation <- clValid(glass.cechy, nClust=zakres, clMethods=metody, validation="stability")
+#summary(stability.validation)
+kable(optimalScores(stability.validation), format="latex", caption="Algorytmy, dla których wskaźniki stabilności są optymalne")
+@
+
+<<stability.plots, echo=FALSE, fig.height=9, fig.width=7, fig.cap="Porównanie skuteczności algorytmów w zależności od liczby klas">>=
+par(mfrow = c(3,1))
+plot(stability.validation, measure=c("APN","AD","ADM"), lwd=2)
+@
+
+\subsection{Podsumowanie}
+\begin{itemize}
+\item Dla zboru danych \textit{Glass}, spośród zastosowanych funkcji, najlepsze rezultaty przyniósł algorytm hierarchiczny AGNES z metodą łączenia skupień \textit{Warda}.
+\item Czas działania algorytmu AGNES był dłuższy niż w przypadku algorytmu PAM. Dla zbiorów danych zawierających wiele rekordów lub cech, wyznaczanie odpowiednich skupisk z wykorzystaniem algorytmów hierarchicznych mogłoby być czasochłonne.
+\item Otrzymujemy najbardziej zwarte i odseparowane od siebie klastry dla algorytmu agnes z metodą \textit{complete}.
+\item Zbiór cech wykorzystany do wyznaczenia skupisk nie charakteryzuje się wysoką zdolnością dyskryminacyjną.
+\end{itemize}
+
+\end{document}
+
