@@ -1,17 +1,10 @@
 \documentclass[12pt, a4paper]{article}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% dodatkowe pakiety LaTeX'a
 \usepackage[OT4]{polski}
 \usepackage[utf8]{inputenc}
 \usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage[colorlinks=true, linkcolor=blue]{hyperref}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ustawienia globalne
 <<ustawienia_globalne, echo=FALSE, warning=FALSE>>=
 library(knitr)
 opts_chunk$set(
@@ -21,21 +14,14 @@ opts_chunk$set(
   fig.width=5,
   fig.height=4)
 @
-
-
 \begin{document}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% strona tytulowa
-
-
-\title{Raport nr 3}
+\title{Raport nr 4}
 \author{Emilia Kowal [249716], Jakub Dworzański [249703]}
 \maketitle
 \tableofcontents
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+\section{Zaawansowane metody klasyfikacji}
 
 % Zad. 2
 <<ustalenie.ziarna, echo=FALSE>>=
@@ -51,9 +37,6 @@ library(randomForest)
 library(rpart)
 library(rpart.plot)
 @
-
-\section{Zaawansowane metody klasyfikacji}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Krótki opis zagadnienia}
 
@@ -76,24 +59,23 @@ Tym razem skorzystamy z bardziej zaawansownych metod.
 Rozpoczniemy od zastosowania rodzin klasyfikatorów.
 Skupimy się na algorytmach bagging, boosting oraz random forest.
 
-Następnie, 
-Będą to metoda k-najbliższych sąsiadów (k-NN, \emph{k-Nearest Neighbours}),
-naiwny klasyfikator bayesowski (NBC, \emph{Naive Bayesian Classifier}) oraz
-drzewo klasyfikacyjne (\emph{classification tree}).
+Postaramy się odkryć, jak zadziałają te algorytmy.
+Ponadto, porównamy ich dokładność z poprzednimi wynikami.
+Sprawdzimy również, jak złożoność algorytmu wpływa na
+czas potrzebny do zbudowania modelu.
 
-Ponadto, postaramy się dobrać odpowiednie parametry dla tych modeli.
-Spróbujemy również dokonać pewnych przekształceń danych, czy też
-wybrać pewne podzbiory cech, aby sprawdzić, czy uda nam się w ten
-sposób poprawić jakość klasyfikatora.
+Następnie, wykorzystamy algorytm SVM -
+maszynę wektorów podpierających.
+Wykorzystując różne funkcje jądrowe
+oraz badając przestrzenie parametrów,
+postaramy się odkryć, czy ten algorytm
+obniży błąd klasyfikacji.
 
-Po zbadaniu podstawowych metod, spróbujemy również porównać
-je z metodami bardziej zaawansowanymi i wyrafinowanymi.
-
-Aby ocenić jakość predykcji, będziemy korzystać
-z 5-, 10-krotnego sprawdzianu krzyżowego
-oraz sprawdzianu krzyżowego typu leave-one-out
-(\emph{5-, 10-, leave-one-out Cross Validation}).
-Ponadto, wykorzystamy metodę \emph{bootstrap} oraz \emph{632+}.
+Tym razem, aby ocenić
+jakość predykcji,
+będziemy korzystać
+z 5-, sprawdzianu krzyżowego,
+metody \emph{bootstrap} oraz \emph{632+}.
 
 Zastosujemy do tego następujące funkcje pomocnicze,
 odpowiadające za uczenie modelu oraz estymację błędów.
@@ -109,12 +91,12 @@ nasz.errorest <- function(formula, data, model, predict=mypredict, ...){
     estimator="cv", est.para=control.errorest(k = 5), ...
   )$error
   bootstrap <- errorest(
-    formula=formula, data=data, model=model,
-    predict=predict, estimator="boot", ...
+    formula=formula, data=data, model=model, predict=predict,
+    estimator="boot", est.para=control.errorest(nboot = 5), ...
   )$error
   err632plus <- errorest(
-    formula=formula, data=data, model=model,
-    predict=predict, estimator="632plus", ...
+    formula=formula, data=data, model=model, predict=predict,
+    estimator="boot", est.para=control.errorest(nboot = 5), ...
   )$error
   return(data.frame(
     paste0(
@@ -123,23 +105,20 @@ nasz.errorest <- function(formula, data, model, predict=mypredict, ...){
     ),
     row.names=c(
       "CV5",
-      "bootstrap (15 powtórzeń)",
-      "632+ (15 powtórzeń)"
+      "bootstrap (5 powtórzeń)",
+      "632+ (5 powtórzeń)"
     )
   ))
 }
 wyniki <- data.frame(row.names=c(
       "CV5",
-      "bootstrap (15 powtórzeń)",
-      "632+ (15 powtórzeń)"
+      "bootstrap (5 powtórzeń)",
+      "632+ (5 powtórzeń)"
     ))
 @
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Wyniki}
-
-\subsubsection{Rodziny klasyfikatorów}
+\subsection{Rodziny klasyfikatorów}
 
 Aby mieć punkt odniesienia podczas oceny wyników,
 skorzystamy z drzewa decyzyjnego, które będzie
@@ -152,11 +131,13 @@ oraz przycinanie go po konstrukcji za pomocą
 metody jednego odchylenia.
 <<waznosc.zmiennych.drzewo.pokaz, eval=FALSE>>=
 drzewo <- rpart(Type~., Glass, minsplit=1)
-drzewo$variable.importance
+waznosc.drzewo <- drzewo$variable.importance
+waznosc.drzewo
 @
 <<waznosc.zmiennych.drzewo, echo=FALSE, cache=TRUE>>=
 drzewo <- rpart(Type~., Glass, minsplit=1)
-kable(drzewo$variable.importance, col.names="Ważność zmiennej", format="latex",
+waznosc.drzewo <- drzewo$variable.importance
+kable(waznosc.drzewo, col.names="Ważność zmiennej", format="latex",
       caption="Ważność zmiennych na podstawie konstrukcji drzewa klasyfikacyjnego")
 @
 
@@ -169,9 +150,10 @@ nasze.drzewo <- function(...){
   ponizej.1.sd <- cptable[which(cptable$xerror < xerror.min + xstd.min),]$CP
   return(prune(drzewo, cp=max(ponizej.1.sd)))
 }
-nasz.errorest(
+wyniki["drzewo"] <- nasz.errorest(
   Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo
 )
+wyniki["drzewo"]
 @
 <<poprzednie.wyniki, echo=FALSE>>=
 nasze.drzewo <- function(...){
@@ -182,10 +164,11 @@ nasze.drzewo <- function(...){
   ponizej.1.sd <- cptable[which(cptable$xerror < xerror.min + xstd.min),]$CP
   return(prune(drzewo, cp=max(ponizej.1.sd)))
 }
-kable(
-  nasz.errorest(
+wyniki["drzewo"] <- nasz.errorest(
   Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo
-  ),
+)
+kable(
+  wyniki["drzewo"],
   col.names=c("Błąd klasyfikacji"),
   caption="Najlepsze wyniki dla drzewa klasyfikacyjnego, otrzymane podczas pierwszej części analizy."
 )
@@ -204,27 +187,168 @@ Na rys. \ref{fig:drzewo.wykres} możemy zobaczyć
 przykładowe drzewo decyzyjne, stworzone tą metodą
 na podstawie całego zbioru danych.
 
-<<eval=FALSE>>=
+Po zapoznaniu się z dotychczasowymi wynikami,
+sprawdzimy, jak z klasyfikacją
+poradzą sobie komitety klasyfikatorów.
+
+<<wyniki.komitety, cache=TRUE>>=
 wyniki["bagging"] <- nasz.errorest(
   Type ~ ., Glass, ipred::bagging
 )
 wyniki["boosting"] <- nasz.errorest(
   Type~., Glass, adabag::boosting, predict=adaboost.predict
 )
+wyniki["random.forest"] <- nasz.errorest(
+  Type~., Glass, randomForest
+)
+@
+<<porownanie.wynikow, echo=FALSE>>=
+kable(
+  wyniki[c("drzewo", "bagging", "random.forest", "boosting")],
+  col.names=c("drzewo", "bagging", "random forest", "boosting"),
+  caption="Porównanie błędów klasyfikacji."
+)
 @
 
+W tabeli \ref{tab:porownanie.wynikow}
+widzimy, że zastosowanie
+algorytmów typu \emph{ensemble},
+pozwala na znaczną poprawę wyników
+(względem klasyfikatora bazowego - drzewa klasyfikacyjnego)
+nawet dla komitetów z domyślnymi parametrami.
+
+Ponadto, różnice błędu klasyfikacji
+pomiędzy poszczególnymi komitetami,
+są stosunkowo niewielkie
+(rzędu 2-3 punktów procentowych).
+
+Niestety, wraz ze wzrostem dokładności,
+zdecydowanie wzrasta również czas,
+potrzebny na trening komitetu klasyfikatorów.
+Sprawdzimy teraz, jak bardzo wydłuża się
+czas potrzebny do zbudowania poszczególnych
+modeli.
+
+<<czas.budowy.pokaz, eval=FALSE>>=
+czas<- data.frame(row.names=c("czas"))
+
+start <- Sys.time()
+rpart(Type~., Glass)
+stop <- Sys.time()
+czas.drzewo <- as.numeric(stop-start)
+czas["drzewo"] <- 1
+
+start <- Sys.time()
+randomForest(Type~., Glass)
+stop <- Sys.time()
+czas["random.forest"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+ipred::bagging(Type~., Glass)
+stop <- Sys.time()
+czas["bagging"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+boosting(Type~., Glass)
+stop <- Sys.time()
+czas["boosting"] <- as.numeric(stop-start) / czas.drzewo
+
+czas
+@
+
+<<czas.budowy, echo=FALSE, cache=TRUE, results=FALSE>>=
+czas<- data.frame(row.names=c("czas"))
+
+start <- Sys.time()
+rpart(Type~., Glass)
+stop <- Sys.time()
+czas.drzewo <- as.numeric(stop-start)
+czas["drzewo"] <- 1
+
+start <- Sys.time()
+randomForest(Type~., Glass)
+stop <- Sys.time()
+czas["random.forest"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+ipred::bagging(Type~., Glass)
+stop <- Sys.time()
+czas["bagging"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+boosting(Type~., Glass)
+stop <- Sys.time()
+czas["boosting"] <- as.numeric(stop-start) / czas.drzewo
+@
+<<czas.budowy.prezentacja, echo=FALSE, cache=TRUE>>=
+kable(
+  data.frame(
+    paste0(round(100 * czas, 2), "%"),
+    row.names=c("drzewo", "las losowy", "bagging", "boosting")
+  ),
+  col.names=c("czas"),
+  caption="Czas konstrukcji względem czasu konstrukcji drzewa decyzyjnego."
+)
+@
+
+W tabeli \ref{tab:czas.budowy.prezentacja}
+widzimy, że faktycznie czas potrzebny
+na zbudowanie komitetu klasyfikatorów
+może być istotnie dłuższy niż czas
+potrzebny na zbudowanie drzewa.
+
+Korzystając z konstrukcji lasu losowego,
+możemy też wyznaczyć ważność
+cech, podobnie jak dla pojedynczego
+drzewa klasyfikacyjnego.
+
+<<waznosc.zmiennych.porownanie.pokaz, eval=FALSE>>=
+model.rf <- randomForest(Type~., Glass)
+model.rf$importance
+porownanie <- data.frame(
+  waznosc.drzewo,
+  model.rf$importance
+)
+names(porownanie) <- c("drzewo", "las.losowy")
+ggplot(
+  porownanie,
+  aes(x=drzewo, y=las.losowy, label=rownames(porownanie))
+) + geom_text()
+@
+<<waznosc.zmiennych.porownanie, echo=FALSE, cache=TRUE, fig.cap="Porównanie ważności zmiennych">>=
+model.rf <- randomForest(Type~., Glass)
+kable(model.rf$importance, col.names="Ważność zmiennej", format="latex",
+      caption="Ważność zmiennych na podstawie konstrukcji lasu losowego.")
+
+porownanie <- data.frame(
+  waznosc.drzewo,
+  model.rf$importance
+)
+names(porownanie) <- c("drzewo", "las.losowy")
+
+ggplot(
+  porownanie,
+  aes(x=drzewo, y=las.losowy, label=rownames(porownanie))
+) + geom_text() +
+  labs(x="Ważność (drzewo)", y="Ważność (las losowy)")
+@
+
+W tabeli \ref{tab:waznosc.zmiennych.porownanie}
+widzimy ważnośćm przypisaną poszczególnym cechom,
+na podstawie konstrukcji lasu losowego.
+Natomiast na wykresie \ref{fig:waznosc.zmiennych.porownanie}
+możemy zobaczyć, że istotność cech
+otrzymana na podstawie drzewa klasyfikacyjnego
+częściowo pokrywa się z istotnością
+na podstawie lasu losowego.
+W szczególności, zbiór 5 najważniejszych cech
+pokrywa się ze sobą dla obu "rankingów".
+Ponadto, oba sposoby wskazały, że
+zawartość żelaza jest najmniej istotną z cech.
 
 
-\subsubsection{Bagging}
-Rozpoczniemy od algorytmu bagging.
 
-
-
-
-
-
-
-\subsubsection{Metoda wektorów nośnych (SVM)}
+\subsection{Metoda wektorów nośnych (SVM)}
 
 Analizę algorytmu SVM rozpoczniemy
 od sprawdzenia błędu klasyfikacji
@@ -308,8 +432,8 @@ błąd klasyfikacji zmienia się
 w zależności od parametru kosztu.
 Spośród zbadanych przez nas parametrów,
 estymowany błąd klasyfikacji
-osiąga minimum dla $C=???$.
-Otrzymujemy wtedy wynik ?????\%
+osiąga minimum dla $C=8`$.
+Otrzymujemy wtedy wynik 36.61\%
 (tab. \ref{tab:svm.linear.tuning.plot}).
 
 Widzimy, że nie doszło do znacznego
@@ -357,7 +481,7 @@ kable(
 
 
 Na wykresie \ref{fig:svm.radial.tuning}
-widzimy, że dobór parametróW może mieć
+widzimy, że dobór parametrów może mieć
 istotny wpływ na dokładność klasyfikacji.
 Mimo tego, nie udało nam się znacznie
 poprawić dokładności względem klasyfikatora
@@ -365,5 +489,36 @@ z domyślnymi parametrami (tab. \ref{tab:svm.radial.tuning}).
 
 
 \subsection{Wnioski}
+
+Na podstawie przeprowadzonych eksperymentów,
+możemy stwierdzić, że bardziej zaawansowane
+metody klasyfikacji pozwalają na osiągnięcie
+dużo niższego błędu klasyfikacji.
+W przypadku komitetów klasyfikatorów,
+osiągaliśmy obniżenie błędu klasyfikacji
+o niemalże 50\%.
+
+Widzieliśmy również, że wyższa skuteczność
+idzie w parze z większą złożonością algorytmu,
+przez co budowanie modeli może się znacznie
+wydłużyć.
+
+
+W przypadku SVM, poprawa wyników nie była
+tak znacząca. Ten problem może być spowodowany
+przez różne czynniki.
+Wpływ na wysokość błędu predykcji może mieć
+to, że SVM jest algorytmem do klasyfikacji
+binarnej, a wykorzystywanie go do problemów
+wieloklasowych, może pogarszać jego przewagę
+nad pozostałymi metodami.
+Ponadto, problemem może być odnalezienie
+lokalnego minimum w przestrzeni parametrów
+modelu.
+Mimo wyników porównywalnych z wcześniej
+poznanymi klasyfikatorami,
+mogliśmy się przekonać, że w przypadku SVM
+dobór parametrów jest bardzo istotny i ma
+duży wpływ na błąd klasyfikacji.
 
 \end{document}
