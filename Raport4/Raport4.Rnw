@@ -1,0 +1,524 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[OT4]{polski}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+<<ustawienia_globalne, echo=FALSE, warning=FALSE>>=
+library(knitr)
+opts_chunk$set(
+  fig.path='figure/',
+  fig.align='center',
+  fig.pos='H',
+  fig.width=5,
+  fig.height=4)
+@
+\begin{document}
+
+\title{Raport nr 4}
+\author{Emilia Kowal [249716], Jakub Dworzański [249703]}
+\maketitle
+\tableofcontents
+
+\section{Zaawansowane metody klasyfikacji}
+
+% Zad. 2
+<<ustalenie.ziarna, echo=FALSE>>=
+set.seed(12062020)
+@
+
+<<biblioteki, echo=FALSE, eval=TRUE, warning=FALSE, results=FALSE, message=FALSE>>=
+library(adabag)
+library(e1071)
+library(ipred)
+library(mlbench)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Krótki opis zagadnienia}
+
+W tym ćwiczeniu, będziemy kontynuowali analizę zbioru danych o odłamkach szkła.
+<<przykladowe_dane, echo=FALSE>>=
+data(Glass)
+kable(head(Glass), caption="Przykładowe dane", format="latex")
+@
+<<przykladowe_dane_pokaz ,eval=FALSE>>=
+data(Glass)
+head(Glass)
+@
+
+% https://archive.ics.uci.edu/ml/datasets/glass+identification
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Opis eksperymentów/analiz}
+
+Tym razem skorzystamy z bardziej zaawansownych metod.
+Rozpoczniemy od zastosowania rodzin klasyfikatorów.
+Skupimy się na algorytmach bagging, boosting oraz random forest.
+
+Postaramy się odkryć, jak zadziałają te algorytmy.
+Ponadto, porównamy ich dokładność z poprzednimi wynikami.
+Sprawdzimy również, jak złożoność algorytmu wpływa na
+czas potrzebny do zbudowania modelu.
+
+Następnie, wykorzystamy algorytm SVM -
+maszynę wektorów podpierających.
+Wykorzystując różne funkcje jądrowe
+oraz badając przestrzenie parametrów,
+postaramy się odkryć, czy ten algorytm
+obniży błąd klasyfikacji.
+
+Tym razem, aby ocenić
+jakość predykcji,
+będziemy korzystać
+z 5-, sprawdzianu krzyżowego,
+metody \emph{bootstrap} oraz \emph{632+}.
+
+Zastosujemy do tego następujące funkcje pomocnicze,
+odpowiadające za uczenie modelu oraz estymację błędów.
+
+<<funkcje.pomocnicze>>=
+mypredict <- function(model, newdata) predict(model, newdata, type="class")
+adaboost.predict <- function(model, newdata){
+  return(as.factor(predict(model, newdata)$class))
+}
+nasz.errorest <- function(formula, data, model, predict=mypredict, ...){
+  cv.5 <- errorest(
+    formula=formula, data=data, model=model, predict=predict,
+    estimator="cv", est.para=control.errorest(k = 5), ...
+  )$error
+  bootstrap <- errorest(
+    formula=formula, data=data, model=model, predict=predict,
+    estimator="boot", est.para=control.errorest(nboot = 5), ...
+  )$error
+  err632plus <- errorest(
+    formula=formula, data=data, model=model, predict=predict,
+    estimator="boot", est.para=control.errorest(nboot = 5), ...
+  )$error
+  return(data.frame(
+    paste0(
+      round(100*c(cv.5, bootstrap, err632plus), 2),
+      "%"
+    ),
+    row.names=c(
+      "CV5",
+      "bootstrap (5 powtórzeń)",
+      "632+ (5 powtórzeń)"
+    )
+  ))
+}
+wyniki <- data.frame(row.names=c(
+      "CV5",
+      "bootstrap (5 powtórzeń)",
+      "632+ (5 powtórzeń)"
+    ))
+@
+
+
+\subsection{Rodziny klasyfikatorów}
+
+Aby mieć punkt odniesienia podczas oceny wyników,
+skorzystamy z drzewa decyzyjnego, które będzie
+wykorzystywane jako klasyfikator bazowy w tym ćwiczeniu.
+
+Przypomnijmy, że w pierwszej części analizy,
+najlepszy rezultat osiągneliśmy poprzez tworzenie
+drzewa na podstawie 6 najważniejszych zmiennych
+oraz przycinanie go po konstrukcji za pomocą
+metody jednego odchylenia.
+<<waznosc.zmiennych.drzewo.pokaz, eval=FALSE>>=
+drzewo <- rpart(Type~., Glass, minsplit=1)
+waznosc.drzewo <- drzewo$variable.importance
+waznosc.drzewo
+@
+<<waznosc.zmiennych.drzewo, echo=FALSE, cache=TRUE>>=
+drzewo <- rpart(Type~., Glass, minsplit=1)
+waznosc.drzewo <- drzewo$variable.importance
+kable(waznosc.drzewo, col.names="Ważność zmiennej", format="latex",
+      caption="Ważność zmiennych na podstawie konstrukcji drzewa klasyfikacyjnego")
+@
+
+<<poprzednie.wyniki.pokaz, eval=FALSE>>=
+nasze.drzewo <- function(...){
+  drzewo <- rpart(..., minsplit=1)
+  cptable <- data.frame(drzewo$cptable)
+  xerror.min <- min(cptable$xerror)
+  xstd.min <- max(cptable[which(cptable$xerror == xerror.min),]$xstd)
+  ponizej.1.sd <- cptable[which(cptable$xerror < xerror.min + xstd.min),]$CP
+  return(prune(drzewo, cp=max(ponizej.1.sd)))
+}
+wyniki["drzewo"] <- nasz.errorest(
+  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo
+)
+wyniki["drzewo"]
+@
+<<poprzednie.wyniki, echo=FALSE>>=
+nasze.drzewo <- function(...){
+  drzewo <- rpart(..., minsplit=1)
+  cptable <- data.frame(drzewo$cptable)
+  xerror.min <- min(cptable$xerror)
+  xstd.min <- max(cptable[which(cptable$xerror == xerror.min),]$xstd)
+  ponizej.1.sd <- cptable[which(cptable$xerror < xerror.min + xstd.min),]$CP
+  return(prune(drzewo, cp=max(ponizej.1.sd)))
+}
+wyniki["drzewo"] <- nasz.errorest(
+  Type ~ RI + Al + Ca + Mg + Na + Ba, Glass, nasze.drzewo
+)
+kable(
+  wyniki["drzewo"],
+  col.names=c("Błąd klasyfikacji"),
+  caption="Najlepsze wyniki dla drzewa klasyfikacyjnego, otrzymane podczas pierwszej części analizy."
+)
+@
+
+<<drzewo.wykres.pokaz, eval=FALSE>>=
+drzewo <- nasze.drzewo(Type ~ RI + Al + Ca + Mg + Na + Ba, Glass)
+rpart.plot(drzewo)
+@
+<<drzewo.wykres, echo=FALSE, fig.cap="Przykładowe drzewo klasyfikacyjne", warning=FALSE>>=
+drzewo <- nasze.drzewo(Type ~ RI + Al + Ca + Mg + Na + Ba, Glass)
+rpart.plot(drzewo, extra=0, yes.text="tak", no.text="nie")
+@
+
+Na rys. \ref{fig:drzewo.wykres} możemy zobaczyć
+przykładowe drzewo decyzyjne, stworzone tą metodą
+na podstawie całego zbioru danych.
+
+Po zapoznaniu się z dotychczasowymi wynikami,
+sprawdzimy, jak z klasyfikacją
+poradzą sobie komitety klasyfikatorów.
+
+<<wyniki.komitety, cache=TRUE>>=
+wyniki["bagging"] <- nasz.errorest(
+  Type ~ ., Glass, ipred::bagging
+)
+wyniki["boosting"] <- nasz.errorest(
+  Type~., Glass, adabag::boosting, predict=adaboost.predict
+)
+wyniki["random.forest"] <- nasz.errorest(
+  Type~., Glass, randomForest
+)
+@
+<<porownanie.wynikow, echo=FALSE>>=
+kable(
+  wyniki[c("drzewo", "bagging", "random.forest", "boosting")],
+  col.names=c("drzewo", "bagging", "random forest", "boosting"),
+  caption="Porównanie błędów klasyfikacji."
+)
+@
+
+W tabeli \ref{tab:porownanie.wynikow}
+widzimy, że zastosowanie
+algorytmów typu \emph{ensemble},
+pozwala na znaczną poprawę wyników
+(względem klasyfikatora bazowego - drzewa klasyfikacyjnego)
+nawet dla komitetów z domyślnymi parametrami.
+
+Ponadto, różnice błędu klasyfikacji
+pomiędzy poszczególnymi komitetami,
+są stosunkowo niewielkie
+(rzędu 2-3 punktów procentowych).
+
+Niestety, wraz ze wzrostem dokładności,
+zdecydowanie wzrasta również czas,
+potrzebny na trening komitetu klasyfikatorów.
+Sprawdzimy teraz, jak bardzo wydłuża się
+czas potrzebny do zbudowania poszczególnych
+modeli.
+
+<<czas.budowy.pokaz, eval=FALSE>>=
+czas<- data.frame(row.names=c("czas"))
+
+start <- Sys.time()
+rpart(Type~., Glass)
+stop <- Sys.time()
+czas.drzewo <- as.numeric(stop-start)
+czas["drzewo"] <- 1
+
+start <- Sys.time()
+randomForest(Type~., Glass)
+stop <- Sys.time()
+czas["random.forest"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+ipred::bagging(Type~., Glass)
+stop <- Sys.time()
+czas["bagging"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+boosting(Type~., Glass)
+stop <- Sys.time()
+czas["boosting"] <- as.numeric(stop-start) / czas.drzewo
+
+czas
+@
+
+<<czas.budowy, echo=FALSE, cache=TRUE, results=FALSE>>=
+czas<- data.frame(row.names=c("czas"))
+
+start <- Sys.time()
+rpart(Type~., Glass)
+stop <- Sys.time()
+czas.drzewo <- as.numeric(stop-start)
+czas["drzewo"] <- 1
+
+start <- Sys.time()
+randomForest(Type~., Glass)
+stop <- Sys.time()
+czas["random.forest"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+ipred::bagging(Type~., Glass)
+stop <- Sys.time()
+czas["bagging"] <- as.numeric(stop-start) / czas.drzewo
+
+start <- Sys.time()
+boosting(Type~., Glass)
+stop <- Sys.time()
+czas["boosting"] <- as.numeric(stop-start) / czas.drzewo
+@
+<<czas.budowy.prezentacja, echo=FALSE, cache=TRUE>>=
+kable(
+  data.frame(
+    paste0(round(100 * czas, 2), "%"),
+    row.names=c("drzewo", "las losowy", "bagging", "boosting")
+  ),
+  col.names=c("czas"),
+  caption="Czas konstrukcji względem czasu konstrukcji drzewa decyzyjnego."
+)
+@
+
+W tabeli \ref{tab:czas.budowy.prezentacja}
+widzimy, że faktycznie czas potrzebny
+na zbudowanie komitetu klasyfikatorów
+może być istotnie dłuższy niż czas
+potrzebny na zbudowanie drzewa.
+
+Korzystając z konstrukcji lasu losowego,
+możemy też wyznaczyć ważność
+cech, podobnie jak dla pojedynczego
+drzewa klasyfikacyjnego.
+
+<<waznosc.zmiennych.porownanie.pokaz, eval=FALSE>>=
+model.rf <- randomForest(Type~., Glass)
+model.rf$importance
+porownanie <- data.frame(
+  waznosc.drzewo,
+  model.rf$importance
+)
+names(porownanie) <- c("drzewo", "las.losowy")
+ggplot(
+  porownanie,
+  aes(x=drzewo, y=las.losowy, label=rownames(porownanie))
+) + geom_text()
+@
+<<waznosc.zmiennych.porownanie, echo=FALSE, cache=TRUE, fig.cap="Porównanie ważności zmiennych">>=
+model.rf <- randomForest(Type~., Glass)
+kable(model.rf$importance, col.names="Ważność zmiennej", format="latex",
+      caption="Ważność zmiennych na podstawie konstrukcji lasu losowego.")
+
+porownanie <- data.frame(
+  waznosc.drzewo,
+  model.rf$importance
+)
+names(porownanie) <- c("drzewo", "las.losowy")
+
+ggplot(
+  porownanie,
+  aes(x=drzewo, y=las.losowy, label=rownames(porownanie))
+) + geom_text() +
+  labs(x="Ważność (drzewo)", y="Ważność (las losowy)")
+@
+
+W tabeli \ref{tab:waznosc.zmiennych.porownanie}
+widzimy ważnośćm przypisaną poszczególnym cechom,
+na podstawie konstrukcji lasu losowego.
+Natomiast na wykresie \ref{fig:waznosc.zmiennych.porownanie}
+możemy zobaczyć, że istotność cech
+otrzymana na podstawie drzewa klasyfikacyjnego
+częściowo pokrywa się z istotnością
+na podstawie lasu losowego.
+W szczególności, zbiór 5 najważniejszych cech
+pokrywa się ze sobą dla obu "rankingów".
+Ponadto, oba sposoby wskazały, że
+zawartość żelaza jest najmniej istotną z cech.
+
+
+
+\subsection{Metoda wektorów nośnych (SVM)}
+
+Analizę algorytmu SVM rozpoczniemy
+od sprawdzenia błędu klasyfikacji
+dla domyślnych parametrów,
+korzystając z różnych funkcji jądrowych.
+
+<<svm.wstep.pokaz, eval=FALSE>>=
+wyniki["linear SVM"] <- nasz.errorest(Type~., Glass, svm, kernel="linear")
+wyniki["polynomial SVM"] <- nasz.errorest(Type~., Glass, svm, kernel="polynomial")
+wyniki["radial SVM"] <- nasz.errorest(Type~., Glass, svm, kernel="radial")
+
+wyniki
+@
+
+<<svm.wstep, echo=FALSE, eval=TRUE, cache=TRUE>>=
+wyniki["linear SVM"] <- nasz.errorest(Type~., Glass, svm, kernel="linear")
+wyniki["polynomial SVM"] <- nasz.errorest(Type~., Glass, svm, kernel="polynomial")
+wyniki["radial SVM"] <- nasz.errorest(Type~., Glass, svm, kernel="radial")
+wyniki["sigmoid SVM"] <- nasz.errorest(Type~., Glass, svm, kernel="sigmoid")
+kable(
+  wyniki[c("linear SVM", "polynomial SVM", "radial SVM", "sigmoid SVM")],
+  col.names=c("liniowe", "wielomianowe", "radialne", "sigmoidalne"),
+  caption="Porównanie SVM z wykorzystaniem domyślnych parametrów i różnych funkcji jądrowych."
+)
+@
+
+W tabeli \ref{tab:svm.wstep} widzimy,
+że dla domyślnych parametrów,
+najlepiej radzą sobie
+SVM z liniową funkcją jądrową
+oraz SVM z radialną funkcją jądrową.
+W tej samej tabeli,
+widzimy również,
+że wybór funkcji jądrowej
+w sposób znaczny
+wpływa na dokładność klasyfikatora.
+Możemy jednak przypuszczać, że ma
+to również związek z większą wrażliwością
+na dobór parametrów dla SVM
+z wielomianową lub sigmoidalną funkcją jądrową.
+
+
+Postaramy się teraz sprawdzić,
+jaki wpływ na klasyfikację,
+przy pomocy SVM z jądrem liniowym,
+ma parametr kosztu \emph{C}.
+
+<<svm.linear.tuning.plot.pokaz, eval=FALSE>>=
+svm.tuning <- tune.svm(
+  Type~., data=Glass, kernel="linear", cost=2^(-4:7),
+  tunecontrol=tune.control(sampling="boot", nboot=25)
+)
+ggplot(svm.tuning$performances, aes(x=cost, y=error)) + geom_point()
+svm.tuning$best.parameters
+svm.tuning$best.performance
+@
+<<svm.linear.tuning.plot, echo=FALSE, cache=TRUE, fig.cap="Wykres błędu klasyfikacji w zależności od parametru kosztu dla SVM z liniową funkcją jądrową.">>=
+svm.tuning <- tune.svm(
+  Type~., data=Glass, kernel="linear", cost=2^(-4:7),
+  tunecontrol=tune.control(sampling="boot", nboot=25)
+)
+
+ggplot(svm.tuning$performances,
+       aes(x=cost, y=error)
+       ) +
+  geom_point() +
+  labs(x="Parametr kosztu", y="Błąd klasyfikacji")
+kable(
+  data.frame(
+    svm.tuning$best.parameters,
+    paste0(round(100*svm.tuning$best.performance, 2), "%")),
+  col.names=c("Parametr kosztu", "Błąd klasyfikacji"),
+  row.names=FALSE,
+  caption="Parametry klasyfikacji dla SVM z jądrem liniowym, minimalizujące błąd klasyfikacji."
+)
+@
+
+Na rysunku \ref{fig:svm.linear.tuning.plot}
+widzimy, że
+błąd klasyfikacji zmienia się
+w zależności od parametru kosztu.
+Spośród zbadanych przez nas parametrów,
+estymowany błąd klasyfikacji
+osiąga minimum dla $C=8`$.
+Otrzymujemy wtedy wynik 36.61\%
+(tab. \ref{tab:svm.linear.tuning.plot}).
+
+Widzimy, że nie doszło do znacznego
+zwiększenia dokładności klasyfikacji
+względem domyślnych parametrów.
+Dlatego też, spróbujemy teraz
+"dostroić" parametry dla SVM
+z radialną funkcją jądrową,
+ponieważ może być on
+bardziej wrażliwy na
+dobór parametrów.
+
+<<svm.radial.tuning.pokaz, eval=FALSE>>=
+svm.tuning <- tune.svm(
+  Type~., data=Glass, kernel="radial",
+  cost=1.5^(-5:10), gamma=1.5^(-10:7),
+  tunecontrol=tune.control(sampling="boot", nboot=25)
+)
+ggplot(svm.tuning$performances, aes(x=cost, y=gamma, fill=error)) + 
+  geom_tile() + scale_y_log10() + scale_x_log10()
+svm.tuning$best.parameters
+svm.tuning$best.performance
+@
+<<svm.radial.tuning, echo=FALSE, cache=TRUE, fig.cap="Wykres błędu klasyfikacji dla SVM z jądrem radialnym w zależności od parametrów kosztu i gamma.">>=
+svm.tuning <- tune.svm(
+  Type~., data=Glass, kernel="radial",
+  cost=1.5^(-5:10), gamma=1.5^(-10:7),
+  tunecontrol=tune.control(sampling="boot", nboot=25)
+)
+
+ggplot(svm.tuning$performances, aes(x=cost, y=gamma, fill=error)) + 
+  scale_y_log10() + scale_x_log10() +geom_tile() + 
+  scale_fill_viridis_c() +
+  labs(x="koszt", y="gamma", fill="błąd")
+
+kable(
+  data.frame(
+    svm.tuning$best.parameters,
+    paste0(round(100*svm.tuning$best.performance, 2), "%")),
+  col.names=c("Parametr gamma", "Parametr kosztu", "Błąd klasyfikacji"),
+  row.names=FALSE,
+  caption="Parametry klasyfikacji dla SVM z jądrem radialnym, minimalizujące błąd klasyfikacji."
+)
+@
+
+
+Na wykresie \ref{fig:svm.radial.tuning}
+widzimy, że dobór parametrów może mieć
+istotny wpływ na dokładność klasyfikacji.
+Mimo tego, nie udało nam się znacznie
+poprawić dokładności względem klasyfikatora
+z domyślnymi parametrami (tab. \ref{tab:svm.radial.tuning}).
+
+
+\subsection{Wnioski}
+
+Na podstawie przeprowadzonych eksperymentów,
+możemy stwierdzić, że bardziej zaawansowane
+metody klasyfikacji pozwalają na osiągnięcie
+dużo niższego błędu klasyfikacji.
+W przypadku komitetów klasyfikatorów,
+osiągaliśmy obniżenie błędu klasyfikacji
+o niemalże 50\%.
+
+Widzieliśmy również, że wyższa skuteczność
+idzie w parze z większą złożonością algorytmu,
+przez co budowanie modeli może się znacznie
+wydłużyć.
+
+
+W przypadku SVM, poprawa wyników nie była
+tak znacząca. Ten problem może być spowodowany
+przez różne czynniki.
+Wpływ na wysokość błędu predykcji może mieć
+to, że SVM jest algorytmem do klasyfikacji
+binarnej, a wykorzystywanie go do problemów
+wieloklasowych, może pogarszać jego przewagę
+nad pozostałymi metodami.
+Ponadto, problemem może być odnalezienie
+lokalnego minimum w przestrzeni parametrów
+modelu.
+Mimo wyników porównywalnych z wcześniej
+poznanymi klasyfikatorami,
+mogliśmy się przekonać, że w przypadku SVM
+dobór parametrów jest bardzo istotny i ma
+duży wpływ na błąd klasyfikacji.
+
+\end{document}
